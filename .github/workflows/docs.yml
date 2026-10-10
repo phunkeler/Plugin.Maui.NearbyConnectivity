@@ -39,8 +39,13 @@ jobs:
         run: dotnet tool restore
 
       # metadata builds the library as plain net10.0 (docfx.json overrides TargetFrameworks), so no
-      # Android/iOS workload is needed here. If that stops holding, move to macos-26-intel and add
+      # Android/iOS workload is needed here. DocFX's own restore ignores that override and fails on
+      # the android target without the workload, so docfx.json sets noRestore and this step
+      # restores net10.0 only. If that stops holding, move to macos-26-intel and add
       # `dotnet workload restore`.
+      - name: Restore the library for net10.0
+        run: dotnet restore src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj -p:TargetFrameworks=net10.0
+
       - name: Build site
         run: dotnet docfx docs/docfx.json --warningsAsErrors
 

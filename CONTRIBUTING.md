@@ -96,6 +96,7 @@ in `Resources/FontIcons`. To rebuild the font, install
 Prose lives in `docs/`, built with DocFX. Preview it at <http://localhost:8080>:
 
 ```bash
+dotnet restore src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj -p:TargetFrameworks=net10.0
 dotnet docfx docs/docfx.json --serve
 ```
 
