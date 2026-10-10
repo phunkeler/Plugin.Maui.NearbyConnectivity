@@ -1,0 +1,236 @@
+name: Release
+
+# Dispatch-only. The version comes from version.json via Nerdbank.GitVersioning, never from an
+# input and never from the tag — a tag trigger would let a mistyped tag publish a version that
+# nothing in the repo agrees with. The release itself creates the tag, after the package is built.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  verify:
+    name: Verify and pack
+    # Pinned to the same image as ci.yml. A release built on an image CI never validated is a
+    # release nothing has actually tested — macos-latest silently moves between runner versions,
+    # so this must be changed in lockstep with ci.yml, never independently.
+    runs-on: macos-26-intel
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.guards.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0  # Required for Nerdbank.GitVersioning to compute git height
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore local .NET tools
+        run: dotnet tool restore
+
+      # Every precondition for a release, checked before anything is built. All four are cheap;
+      # the expensive work below only runs once the release is known to be legitimate.
+      - name: Guards
+        id: guards
+        run: |
+          set -euo pipefail
+
+          # 1. main only. version.json's publicReleaseRefSpec only treats main as a public
+          #    release, so a dispatch from any other branch would pack a version with a git-hash
+          #    suffix. Checked explicitly so the failure names the real reason.
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Releases run from main only (got $GITHUB_REF)."
+            exit 1
+          fi
+
+          VERSION=$(dotnet nbgv get-version -v NuGetPackageVersion)
+          echo "Version: $VERSION"
+
+          # 2. Belt and braces on guard 1: if NBGV does not consider this a public release the
+          #    version carries a commit-hash suffix and must never reach nuget.org.
+          if [ "$(dotnet nbgv get-version -v PublicRelease)" != "True" ]; then
+            echo "::error::NBGV does not treat this ref as a public release; version would be $VERSION."
+            exit 1
+          fi
+
+          # 3. Not already released. A nuget.org version can never be replaced, so an accidental
+          #    re-dispatch of an already-published version must stop here rather than at push,
+          #    where --skip-duplicate would hide it and still cut a duplicate GitHub Release.
+          if git ls-remote --exit-code --tags origin "v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag v$VERSION already exists — $VERSION has been released. Bump version.json."
+            exit 1
+          fi
+
+          # 4. CHANGELOG section exists. This file is the single source of release notes; without
+          #    its section the release would ship with an empty body. The release PR moves
+          #    [Unreleased] to [$VERSION] - YYYY-MM-DD.
+          if ! grep -q "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "::error::No '## [$VERSION]' section in CHANGELOG.md. Move [Unreleased] before releasing."
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore workloads
+        run: dotnet workload restore src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj
+
+      # Same script CI runs. It asserts a non-zero test count from the TRX: the runner exits 0 on an
+      # empty run, which would otherwise let a release ship with no tests executed.
+      - name: Build and test
+        run: pwsh scripts/Invoke-Tests.ps1
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-test-results
+          path: artifacts/*.trx
+          if-no-files-found: warn
+
+      # Runs before Pack so a known-vulnerable dependency stops the release rather than being
+      # discovered after it is on nuget.org, where a package version can never be replaced.
+      # Dependabot reports vulnerabilities eventually; it does not block a release.
+      # Kept identical to the ci.yml step on purpose — if one changes, change both.
+      - name: Check for vulnerable dependencies
+        run: |
+          set -euo pipefail
+
+          # `dotnet list package --vulnerable` exits 0 whether or not it finds anything, so the
+          # output has to be parsed. Verified: exit code is 0 on a clean project.
+          report=$(dotnet list src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj \
+            package --vulnerable --include-transitive 2>&1)
+
+          echo "$report"
+
+          if echo "$report" | grep -q "has the following vulnerable packages"; then
+            echo "::error::Vulnerable dependencies found. Release blocked."
+            exit 1
+          fi
+
+          # A restore failure also produces no "vulnerable packages" line, which would let a
+          # release through unchecked. Require positive confirmation that the scan actually ran.
+          if ! echo "$report" | grep -q "no vulnerable packages"; then
+            echo "::error::Vulnerability scan did not complete — treating as a failure rather than assuming clean."
+            exit 1
+          fi
+
+      # PackageReleaseNotes is a URL, not the changelog text: the nuspec field strips Markdown and
+      # renders poorly on nuget.org, so pointing at the GitHub Release is the only value that reads
+      # well. The release that URL names is created by the publish job below.
+      - name: Pack
+        env:
+          VERSION: ${{ steps.guards.outputs.version }}
+        run: |
+          dotnet pack src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj \
+            -c Release \
+            --output nupkgs \
+            -p:ContinuousIntegrationBuild=true \
+            -p:PackageReleaseNotes="See https://github.com/$GITHUB_REPOSITORY/releases/tag/v$VERSION"
+
+      - name: Upload packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nupkgs
+          path: nupkgs/
+          if-no-files-found: error
+
+  # Split from `verify` so the elevated permissions and the `nuget` environment's required-reviewer
+  # gate apply to publishing alone. Everything that can fail has already failed by this point, so a
+  # reviewer is approving a known-good package rather than a build that might still break.
+  publish:
+    name: Publish
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: nuget
+    permissions:
+      id-token: write       # NuGet/login OIDC + build provenance
+      contents: write       # gh release create
+      attestations: write   # attest-build-provenance
+
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+
+    steps:
+      # The package is never rebuilt here. Rebuilding would produce a different binary from the one
+      # that passed the gates above, and the attestation below would then vouch for an artifact
+      # nothing tested.
+      - name: Download packages
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: nupkgs
+          path: nupkgs
+
+      # Needed for CHANGELOG.md only. Shallow: the version is already decided upstream, so there is
+      # no NBGV computation here that would need history.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      # Trusted Publishing: the nuget.org policy binds owner + repo + workflow file + environment,
+      # so no long-lived API key exists to leak. `user` is the nuget.org profile name the policy is
+      # registered under — not a secret, but kept in a var so the workflow carries no identity.
+      - name: Login to NuGet.org (OIDC)
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        id: login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push nupkgs/*.nupkg \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      # Attests the artifacts as built by this workflow from this commit. nuget.org re-signs what it
+      # serves, so the attested bytes are the ones attached to the GitHub Release below, not the
+      # nuget.org download — SECURITY.md says so explicitly and shows the verify command.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: 'nupkgs/*.nupkg, nupkgs/*.snupkg'
+
+      # CHANGELOG.md is the single source of release notes. --generate-notes appends the
+      # label-categorised PR list (.github/release.yml) after this body.
+      - name: Extract release notes
+        run: |
+          set -euo pipefail
+          awk '/^## \['"$VERSION"'\]/{f=1;next} /^## \[/{f=0} f' CHANGELOG.md > notes.md
+
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG section for $VERSION is empty."
+            exit 1
+          fi
+
+          cat notes.md
+
+      # Creates the tag as part of the release, pinned to the exact commit that was packed rather
+      # than whatever main points at now. A prerelease is anything with a SemVer pre-release part —
+      # matching on '-' rather than the literal 'preview' so an rc or beta is not published as
+      # stable by accident.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          case "$VERSION" in
+            *-*) prerelease=true ;;
+            *)   prerelease=false ;;
+          esac
+
+          gh release create "v$VERSION" \
+            --target "$GITHUB_SHA" \
+            --title "v$VERSION" \
+            --notes-file notes.md \
+            --generate-notes \
+            --prerelease="$prerelease" \
+            nupkgs/*

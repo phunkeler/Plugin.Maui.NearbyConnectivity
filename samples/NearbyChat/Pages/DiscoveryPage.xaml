@@ -1,0 +1,342 @@
+<BasePage
+    x:Class="NearbyChat.Pages.DiscoveryPage"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    x:Name="this"
+    x:TypeArguments="DiscoveryPageViewModel"
+    Background="{toolkit:AppThemeResource BackgroundGradient}"
+    xmlns:nearby="clr-namespace:Plugin.Maui.NearbyConnectivity;assembly=Plugin.Maui.NearbyConnectivity"
+    x:DataType="DiscoveryPageViewModel">
+
+    <BasePage.Content>
+        <Grid RowDefinitions="Auto,Auto,*"
+              RowSpacing="{StaticResource SpacingXL}"
+              Padding="0,24">
+            <Button Style="{StaticResource BackButtonStyle}"
+                    AutomationId="BackButton"
+                    Margin="24,0"
+                    Command="{Binding BackCommand}"
+                    HorizontalOptions="Start"
+                    VerticalOptions="Start"/>
+            <Label AutomationId="DiscoveryStatus"
+                   Text="{Binding Status.IsDiscovering}"
+                   Opacity="0.01"/>
+            <ConnectedDevicesChip
+                x:Name="ConnectionsChip"
+                Count="{Binding Connections.Count}"
+                Command="{Binding NavigateToConnectionsCommand}"
+                HorizontalOptions="End"
+                VerticalOptions="Center"/>
+            <FeatureControlCard
+                Margin="24,0"
+                VerticalOptions="Start"
+                Grid.Row="1"
+                ButtonAutomationId="ToggleDiscovery"
+                FeatureIconBadgeStyle="{StaticResource FeatureIconBadgeDiscoverStyle}"
+                Title="Discovery Mode"
+                ActiveSubtitle="Scanning"
+                InactiveSubtitle="Not scanning"
+                ActiveButtonText="Stop Discovery"
+                InactiveButtonText="Start Discovery"
+                ActiveButtonColor="{StaticResource AccentDiscovery}"
+                InactiveButtonColor="{toolkit:AppThemeResource SurfaceSecondary}"
+                FeatureIsActive="{Binding Status.IsDiscovering}"
+                Command="{Binding ToggleDiscoveryCommand}"/>
+
+            <!-- Page-level failure sits under the toggle it belongs to, not in an alert: a modal
+                 steals the screen from the button the user is about to tap again. -->
+            <VerticalStackLayout
+                Grid.Row="1"
+                VerticalOptions="End"
+                Spacing="2"
+                IsVisible="False">
+                <VerticalStackLayout.Triggers>
+                    <DataTrigger TargetType="VerticalStackLayout"
+                                 Binding="{Binding HasFailed}"
+                                 Value="True">
+                        <Setter Property="IsVisible" Value="True"/>
+                    </DataTrigger>
+                    <DataTrigger TargetType="VerticalStackLayout"
+                                 Binding="{Binding Status.DiscoveryStop.Reason}"
+                                 Value="{x:Static nearby:NearbyActivityStopReason.Faulted}">
+                        <Setter Property="IsVisible" Value="True"/>
+                    </DataTrigger>
+                </VerticalStackLayout.Triggers>
+                <Label
+                    AutomationId="DiscoveryFailure"
+                    IsVisible="{Binding HasFailed}"
+                    LineBreakMode="WordWrap"
+                    FontSize="{StaticResource FontSizeSM}"
+                    FontAttributes="Bold"
+                    TextColor="{toolkit:AppThemeResource StatusError}"
+                    Text="{Binding FailureReason}"/>
+                <Label
+                    AutomationId="DiscoveryFault"
+                    IsVisible="False"
+                    LineBreakMode="WordWrap"
+                    TextColor="{toolkit:AppThemeResource StatusError}"
+                    Text="{Binding Status.DiscoveryStop.Error.Message, StringFormat='Discovery stopped: {0}'}">
+                    <Label.Triggers>
+                        <DataTrigger TargetType="Label"
+                                     Binding="{Binding Status.DiscoveryStop.Reason}"
+                                     Value="{x:Static nearby:NearbyActivityStopReason.Faulted}">
+                            <Setter Property="IsVisible" Value="True"/>
+                        </DataTrigger>
+                    </Label.Triggers>
+                </Label>
+                <Label
+                    LineBreakMode="WordWrap"
+                    FontSize="{StaticResource FontSizeSM}"
+                    TextColor="{toolkit:AppThemeResource TextSecondary}"
+                    IsVisible="{Binding HasRemedy}"
+                    Text="{Binding FailureRemedy}"/>
+            </VerticalStackLayout>
+
+            <CollectionView
+                Margin="0,-8,0,0"
+                Grid.Row="2"
+                ItemsSource="{Binding DiscoveredDevices}"
+                VerticalScrollBarVisibility="Never"
+                HorizontalScrollBarVisibility="Never">
+                <CollectionView.Header>
+                    <Label
+                        Margin="32,8"
+                        IsVisible="{Binding DiscoveredDevices.Count, Converter={StaticResource intToBoolConverter}}"
+                        Text="Nearby Devices"
+                        Style="{StaticResource ListHeader}"/>
+                </CollectionView.Header>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="DiscoveredDeviceViewModel">
+                        <!-- Room for the card's shadow inside the cell, which clips it: 10 above and 22
+                             below, the reach of a 16-radius shadow dropped 6. Less than that cuts the
+                             shadow in a flat line, which shows on the light theme. -->
+                        <Grid Padding="24,10,24,22">
+                            <ExpiringCard Style="{StaticResource FeatureNavigationCardBorderStyle}"
+                                          Padding="0">
+                                <!-- The button's ring shows the offer window, with the seconds
+                                     badge beside the title. -->
+                                <Grid Padding="24"
+                                      RowDefinitions="Auto, Auto, Auto"
+                                      RowSpacing="{StaticResource SpacingSM}">
+                                    <HorizontalStackLayout Spacing="{StaticResource SpacingSM}"
+                                                           HorizontalOptions="Start">
+                                        <DeviceAvatar AutomationId="{Binding Id, StringFormat='Avatar_{0}'}"
+                                                    AvatarSize="40"
+                                                    Presence="{Binding Presence}"
+                                                    VerticalOptions="Center"/>
+                                        <Label VerticalOptions="Center"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1"
+                                               Style="{StaticResource CardTitle}"
+                                               Text="{Binding DisplayName}"/>
+                                    </HorizontalStackLayout>
+                                    <!-- Status pill while idle; the seconds badge takes its place
+                                     while the offer window is open. Both sit in the same cell so
+                                     nothing reflows. -->
+                                    <Border Style="{StaticResource DeviceRowStatusPillBorderStyle}"
+                                            IsVisible="{Binding HasWindow, Converter={toolkit:InvertedBoolConverter}}">
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border"
+                                                         Binding="{Binding State}"
+                                                         Value="{x:Static DeviceRowState.Connecting}">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource StatusInfoSurface}"/>
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border"
+                                                         Binding="{Binding State}"
+                                                         Value="{x:Static DeviceRowState.Expired}">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource StatusExpiredSurface}"/>
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border"
+                                                         Binding="{Binding State}"
+                                                         Value="{x:Static DeviceRowState.Connected}">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource StatusSuccessSurface}"/>
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border"
+                                                         Binding="{Binding State}"
+                                                         Value="{x:Static DeviceRowState.Disconnecting}">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource StatusInfoSurface}"/>
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border"
+                                                         Binding="{Binding State}"
+                                                         Value="{x:Static DeviceRowState.Disconnected}">
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource StatusExpiredSurface}"/>
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Label Style="{StaticResource DeviceRowStatusPillLabelStyle}"
+                                               Text="Available">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding State}"
+                                                             Value="{x:Static DeviceRowState.Connecting}">
+                                                    <Setter Property="Text"
+                                                            Value="Connecting"/>
+                                                    <Setter Property="TextColor"
+                                                            Value="{toolkit:AppThemeResource StatusInfo}"/>
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding State}"
+                                                             Value="{x:Static DeviceRowState.Expired}">
+                                                    <Setter Property="Text"
+                                                            Value="{Binding Outcome}"/>
+                                                    <Setter Property="TextColor"
+                                                            Value="{toolkit:AppThemeResource StatusExpiredText}"/>
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding State}"
+                                                             Value="{x:Static DeviceRowState.Connected}">
+                                                    <Setter Property="Text"
+                                                            Value="Connected"/>
+                                                    <Setter Property="TextColor"
+                                                            Value="{toolkit:AppThemeResource StatusSuccessText}"/>
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding State}"
+                                                             Value="{x:Static DeviceRowState.Disconnecting}">
+                                                    <Setter Property="Text"
+                                                            Value="Disconnecting"/>
+                                                    <Setter Property="TextColor"
+                                                            Value="{toolkit:AppThemeResource StatusInfo}"/>
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding State}"
+                                                             Value="{x:Static DeviceRowState.Disconnected}">
+                                                    <Setter Property="Text"
+                                                            Value="Disconnected"/>
+                                                    <Setter Property="TextColor"
+                                                            Value="{toolkit:AppThemeResource StatusExpiredText}"/>
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </Border>
+                                    <Border
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Center"
+                                        HeightRequest="28"
+                                        Padding="12,0"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 10"
+                                        Background="{toolkit:AppThemeResource OfferWindowSurface}"
+                                        IsVisible="{Binding HasWindow}"
+                                        AutomationId="ConnectOfferWindow">
+                                        <!-- One color for the whole window, matching the ring: this
+                                         side is waiting on the other device, so counting the number
+                                         down is the information and escalating it is not. -->
+                                        <OfferWindowSeconds
+                                            TextColor="{toolkit:AppThemeResource OfferWindowText}"
+                                            FontSize="{StaticResource FontSizeMD}"
+                                            FontAttributes="Bold"
+                                            VerticalOptions="Center"/>
+                                    </Border>
+                                    <!-- The subtitle stays put through a failure: the button carries
+                                     the reason, so the row keeps saying when the device was seen. -->
+                                    <Label
+                                        Grid.Row="1"
+                                        HorizontalOptions="Start"
+                                        Style="{StaticResource CardSubtitle}"
+                                        Text="{Binding ReceivedAgo}"/>
+                                    <!-- No separate retry command: a failed attempt leaves the device
+                                     Visible, so this same button is the retry. The ring drains the
+                                     offer deadline from the row itself, because a recycling cell has
+                                     no code-behind to start it. -->
+                                    <OfferWindowButton
+                                        Grid.Row="2"
+                                        HeightRequest="44"
+                                        Text="Connect"
+                                        AutomationId="{Binding Id, StringFormat='Connect_{0}'}"
+                                        Command="{Binding ConnectCommand}"
+                                        FillColor="{StaticResource AccentConnections}"
+                                        FontAttributes="Bold"
+                                        FontSize="{StaticResource FontSizeSM}"
+                                        Style="{StaticResource UnescalatingOfferWindowButtonStyle}">
+                                        <OfferWindowButton.Triggers>
+                                            <!-- Neutral rather than the Connect purple, matching the
+                                                 advertising row's Decline button. IsExpired, not
+                                                 HasFailed: the reason is cleared once the expiry has
+                                                 been announced, but the row still carries a spent
+                                                 attempt, and a full-strength accent would pull the eye
+                                                 back to a device the user already let lapse. The
+                                                 caption stays "Connect" — the button is offering the
+                                                 connection again, so it says so. -->
+                                            <DataTrigger TargetType="OfferWindowButton"
+                                                         Binding="{Binding IsExpired}"
+                                                         Value="True">
+                                                <Setter Property="FillColor"
+                                                        Value="{toolkit:AppThemeResource SurfaceSecondary}"/>
+                                                <Setter Property="TextColor"
+                                                        Value="{toolkit:AppThemeResource TextPrimary}"/>
+                                            </DataTrigger>
+                                            <!-- The reason itself, not a generic "Try again": while it
+                                                 stands it is the only place the outcome is stated, and
+                                                 the button is still the retry either way. -->
+                                            <DataTrigger TargetType="OfferWindowButton"
+                                                         Binding="{Binding HasFailed}"
+                                                         Value="True">
+                                                <Setter Property="Text"
+                                                        Value="{Binding FailureReason}"/>
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="OfferWindowButton"
+                                                         Binding="{Binding State}"
+                                                         Value="{x:Static DeviceRowState.Offering}">
+                                                <Setter Property="Text"
+                                                        Value="Awaiting..."/>
+                                            </DataTrigger>
+                                            <!-- Precedence between states is the view model's: State
+                                                 is one value, so only one of these applies at a time. -->
+                                            <DataTrigger TargetType="OfferWindowButton"
+                                                         Binding="{Binding State}"
+                                                         Value="{x:Static DeviceRowState.Connected}">
+                                                <Setter Property="Text"
+                                                        Value="Connected"/>
+                                                <Setter Property="FillColor"
+                                                        Value="{StaticResource AccentDiscovery}"/>
+                                                <Setter Property="IsEnabled"
+                                                        Value="False"/>
+                                            </DataTrigger>
+                                        </OfferWindowButton.Triggers>
+                                    </OfferWindowButton>
+                                </Grid>
+                            </ExpiringCard>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="{StaticResource SpacingLG}">
+                        <Image
+                            x:Name="SonarIcon"
+                            WidthRequest="56"
+                            HeightRequest="56">
+                            <Image.Source>
+                                <FontImageSource x:Name="SonarIconSource"
+                                                 FontFamily="NearbyChatIcons"
+                                                 Glyph="{StaticResource icon-sonar}"
+                                                 Color="{toolkit:AppThemeResource TextQuaternary}"/>
+                            </Image.Source>
+                        </Image>
+                        <Label
+                            TextColor="{toolkit:AppThemeResource TextSecondary}"
+                            HorizontalTextAlignment="Center">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label"
+                                             Binding="{Binding Status.IsDiscovering}"
+                                             Value="False">
+                                    <Setter Property="Text"
+                                            Value="Start discovering nearby devices"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Label"
+                                             Binding="{Binding Status.IsDiscovering}"
+                                             Value="True">
+                                    <Setter Property="Text"
+                                            Value="Scanning for nearby devices..."/>
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+            </CollectionView>
+        </Grid>
+    </BasePage.Content>
+</BasePage>

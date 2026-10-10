@@ -1,0 +1,5 @@
+{
+    "dotnet.debug.hotReloadXAML": false, // Issues with GlobalXmlns
+    "dotnet.defaultSolution": "Plugin.Maui.NearbyConnectivity.slnx",
+    "editor.formatOnSave": true
+}

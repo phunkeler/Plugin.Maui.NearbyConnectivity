@@ -1,0 +1,65 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # All NuGet versions live in Directory.Packages.props (central package management), so one
+  # root entry covers every project. Groups are wildcard families, not literal lists, so new
+  # packages land in a group without editing this file.
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    labels:
+      - "dependencies"
+    ignore:
+      # Pinned to the installed `maui devflow` CLI preview; bump both together by hand.
+      - dependency-name: "Microsoft.Maui.DevFlow.Agent"
+      - dependency-name: "microsoft.maui.cli"
+    groups:
+      maui:
+        patterns:
+          - "Microsoft.Maui.*"
+          - "CommunityToolkit.*"
+          - "Plugin.Maui.*"
+      dotnet:
+        patterns:
+          - "Microsoft.Extensions.*"
+          - "Microsoft.CodeAnalysis.*"
+          - "Microsoft.NET.*"
+          - "System.*"
+      test:
+        patterns:
+          - "xunit*"
+          - "NSubstitute"
+          - "Appium.*"
+          - "DeviceRunners.*"
+      # The nbgv tool and the MSBuild package must be the same version.
+      versioning:
+        patterns:
+          - "nbgv"
+          - "Nerdbank.GitVersioning"
+      # Local tools from .config/dotnet-tools.json.
+      tools:
+        patterns:
+          - "dotnet-coverage"
+          - "dotnet-sonarscanner"
+          - "docfx"
+          - "androidsdk.tool"
+      # Xamarin.GooglePlayServices.Nearby is left ungrouped on purpose, so a transport SDK bump
+      # is reviewed alone.

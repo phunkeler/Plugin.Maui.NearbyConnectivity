@@ -1,0 +1,37 @@
+<Project>
+  <PropertyGroup>
+    <NetVersion>net10.0</NetVersion>
+    <AndroidPlatform>android</AndroidPlatform>
+    <IosPlatform>ios</IosPlatform>
+    <AndroidTargetFramework>$(NetVersion)-$(AndroidPlatform)</AndroidTargetFramework>
+    <IosTargetFramework>$(NetVersion)-$(IosPlatform)</IosTargetFramework>
+    <MobileTargetFrameworks>$(AndroidTargetFramework);$(IosTargetFramework)</MobileTargetFrameworks>
+
+    <IsTargetPlatformAndroid>false</IsTargetPlatformAndroid>
+    <IsTargetPlatformAndroid Condition="'$(TargetFramework)' == '$(AndroidTargetFramework)'">true</IsTargetPlatformAndroid>
+    <IsTargetPlatformIos>false</IsTargetPlatformIos>
+    <IsTargetPlatformIos Condition="'$(TargetFramework)' == '$(IosTargetFramework)'">true</IsTargetPlatformIos>
+    <IsTargetPlatformNet>false</IsTargetPlatformNet>
+    <IsTargetPlatformNet Condition="'$(TargetFramework)' == '$(NetVersion)'">true</IsTargetPlatformNet>
+
+    <SupportedOSPlatformVersion Condition="'$(TargetFramework)' == '$(AndroidTargetFramework)'">24</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="'$(TargetFramework)' == '$(IosTargetFramework)'">26.0</SupportedOSPlatformVersion>
+
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- src/Directory.Build.props overrides this to true for the shipping library. -->
+    <IsPackable>false</IsPackable>
+
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- IDE0005 (unnecessary usings) only runs on build when a documentation file is generated. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Machine-local build settings. Untracked; imported last so local values win.
+       See CONTRIBUTING.md for when you might need one. -->
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.local.props')" />
+</Project>

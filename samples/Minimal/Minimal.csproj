@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(MobileTargetFrameworks)</TargetFrameworks>
+
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Minimal</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+
+    <ApplicationTitle>Nearby Minimal</ApplicationTitle>
+    <ApplicationId>com.phunkeler.nearbyminimal</ApplicationId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MauiIcon Include="..\..\.assets\nuget.svg" ForegroundFile="..\..\.assets\nuget.svg" Color="#512BD4" />
+    <MauiSplashScreen Include="..\..\.assets\nuget.svg" Color="#512BD4" BaseSize="128,128" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Plugin.Maui.NearbyConnectivity\Plugin.Maui.NearbyConnectivity.csproj" />
+  </ItemGroup>
+</Project>

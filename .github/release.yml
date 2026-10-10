@@ -1,0 +1,23 @@
+# Categories for the auto-generated "What's Changed" list that `gh release create --generate-notes`
+# appends after the CHANGELOG section (see release.yml). Create these labels when you set up the
+# repository; Dependabot silently drops a label that does not exist.
+changelog:
+  categories:
+    - title: Breaking changes
+      labels:
+        - breaking
+    - title: New features
+      labels:
+        - enhancement
+    - title: Bug fixes
+      labels:
+        - bug
+    - title: Documentation
+      labels:
+        - documentation
+    - title: Dependencies
+      labels:
+        - dependencies
+    - title: Other changes
+      labels:
+        - "*"

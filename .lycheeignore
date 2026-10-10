@@ -1,0 +1,5 @@
+# Targets that exist only after the first release or after a repository setting is enabled.
+# Remove each line once its target resolves.
+^https://www\.nuget\.org/packages/Plugin\.Maui\.NearbyConnectivity
+^https://sonarcloud\.io/
+^https://github\.com/phunkeler/Plugin\.Maui\.NearbyConnectivity/(discussions|security/advisories|attestations|releases|compare)

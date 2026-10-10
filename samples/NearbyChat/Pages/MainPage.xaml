@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<BasePage
+    x:Class="NearbyChat.Pages.MainPage"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    x:Name="this"
+    x:TypeArguments="MainPageViewModel"
+    Background="{toolkit:AppThemeResource BackgroundGradient}"
+    xmlns:nearby="clr-namespace:Plugin.Maui.NearbyConnectivity;assembly=Plugin.Maui.NearbyConnectivity"
+    x:DataType="MainPageViewModel">
+
+    <BasePage.Content>
+        <Grid>
+            <ScrollView>
+                <!-- One group, centred on the page: who you are and what is wrong, then the three
+                     actions straight under it. The star rows share the space left over, above and
+                     below. The vertical padding keeps the group clear of the connections chip on a
+                     short screen, where the star rows close and the page scrolls. -->
+                <Grid RowDefinitions="*, Auto, Auto, *"
+                      Padding="24,64">
+                    <VerticalStackLayout Grid.Row="1"
+                                         Spacing="{StaticResource SpacingLG}"
+                                         Margin="0,0,0,24">
+                        <VerticalStackLayout Spacing="{StaticResource SpacingXS}">
+                            <Label Text="NearbyChat"
+                                   FontSize="28"
+                                   FontAttributes="Bold"
+                                   HorizontalOptions="Center"
+                                   TextColor="{toolkit:AppThemeResource TextPrimary}"/>
+                            <Label HorizontalOptions="Center"
+                                   Style="{StaticResource CardSubtitle}"
+                                   FontSize="{StaticResource FontSizeSM}"
+                                   Text="Nearby devices see you as"/>
+                            <!-- The presence is the button: the thing you tap is the thing you
+                                 change. The pill is Home's only control besides the cards. -->
+                            <Border AutomationId="PresenceButton"
+                                    SemanticProperties.Description="Change your presence"
+                                    HorizontalOptions="Center"
+                                    HeightRequest="48"
+                                    Padding="6,0,12,0"
+                                    Margin="0,4,0,0"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 24"
+                                    BackgroundColor="{toolkit:AppThemeResource Surface}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ChangePresenceCommand}"/>
+                                </Border.GestureRecognizers>
+                                <HorizontalStackLayout Spacing="{StaticResource SpacingSM}"
+                                                       VerticalOptions="Center">
+                                    <DeviceAvatar AutomationId="OwnAvatar"
+                                                AvatarSize="36"
+                                                Presence="{Binding OwnPresence}"
+                                                VerticalOptions="Center"/>
+                                    <Label AutomationId="OwnName"
+                                           Text="{Binding OwnPresence.DisplayName}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"
+                                           MaximumWidthRequest="220"
+                                           VerticalOptions="Center"
+                                           Style="{StaticResource CardTitle}"/>
+                                    <Label Text="{StaticResource icon-right}"
+                                           FontFamily="NearbyChatIcons"
+                                           FontSize="12"
+                                           VerticalOptions="Center"
+                                           TextColor="{toolkit:AppThemeResource TextTertiary}"/>
+                                </HorizontalStackLayout>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <Label
+                            AutomationId="AvailabilityWarning"
+                            LineBreakMode="WordWrap"
+                            HorizontalTextAlignment="Center"
+                            FontSize="{StaticResource FontSizeSM}"
+                            TextColor="{toolkit:AppThemeResource StatusWarning}"
+                            Text="{Binding Status.Availability, Converter={StaticResource availabilityTextConverter}}">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label"
+                                             Binding="{Binding Status.Availability}"
+                                             Value="{x:Static nearby:NearbyAvailability.Available}">
+                                    <Setter Property="IsVisible" Value="False"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Label"
+                                             Binding="{Binding Status.IsReady}"
+                                             Value="False">
+                                    <Setter Property="TextColor" Value="{toolkit:AppThemeResource StatusError}"/>
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+
+                        <!-- The way out of the missing-permission warning, so it is not just a sentence.
+                             Its id must not start with AvailabilityWarning: the lab waits for that
+                             prefix to disappear. -->
+                        <Button Text="Grant access"
+                                AutomationId="GrantAccessButton"
+                                Command="{Binding GrantAccessCommand}"
+                                IsVisible="False"
+                                HorizontalOptions="Center"
+                                HeightRequest="44"
+                                Padding="24,0"
+                                BackgroundColor="{StaticResource AccentConnections}"
+                                TextColor="{StaticResource White}"
+                                FontAttributes="Bold"
+                                CornerRadius="12"
+                                FontSize="{StaticResource FontSizeSM}">
+                            <Button.Triggers>
+                                <DataTrigger TargetType="Button"
+                                             Binding="{Binding Status.Availability}"
+                                             Value="{x:Static nearby:NearbyAvailability.MissingPermissions}">
+                                    <Setter Property="IsVisible"
+                                            Value="True"/>
+                                </DataTrigger>
+                            </Button.Triggers>
+                        </Button>
+
+                        <Label
+                            AutomationId="AdvertisingFault"
+                            IsVisible="False"
+                            LineBreakMode="WordWrap"
+                            HorizontalTextAlignment="Center"
+                            FontSize="{StaticResource FontSizeSM}"
+                            TextColor="{toolkit:AppThemeResource StatusError}"
+                            Text="{Binding Status.AdvertisingStop.Error.Message, StringFormat='Advertising stopped: {0}'}">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label"
+                                             Binding="{Binding Status.AdvertisingStop.Reason}"
+                                             Value="{x:Static nearby:NearbyActivityStopReason.Faulted}">
+                                    <Setter Property="IsVisible" Value="True"/>
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+
+                        <Label
+                            AutomationId="DiscoveryFault"
+                            IsVisible="False"
+                            LineBreakMode="WordWrap"
+                            HorizontalTextAlignment="Center"
+                            FontSize="{StaticResource FontSizeSM}"
+                            TextColor="{toolkit:AppThemeResource StatusError}"
+                            Text="{Binding Status.DiscoveryStop.Error.Message, StringFormat='Discovery stopped: {0}'}">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label"
+                                             Binding="{Binding Status.DiscoveryStop.Reason}"
+                                             Value="{x:Static nearby:NearbyActivityStopReason.Faulted}">
+                                    <Setter Property="IsVisible" Value="True"/>
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+
+                        <Label
+                            AutomationId="ActivitySuspended"
+                            IsVisible="False"
+                            LineBreakMode="WordWrap"
+                            HorizontalTextAlignment="Center"
+                            FontSize="{StaticResource FontSizeSM}"
+                            TextColor="{toolkit:AppThemeResource StatusWarning}"
+                            Text="Nearby stopped while the app was in the background. Start it again below.">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label"
+                                             Binding="{Binding Status.AdvertisingStop.Reason}"
+                                             Value="{x:Static nearby:NearbyActivityStopReason.Suspended}">
+                                    <Setter Property="IsVisible" Value="True"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Label"
+                                             Binding="{Binding Status.DiscoveryStop.Reason}"
+                                             Value="{x:Static nearby:NearbyActivityStopReason.Suspended}">
+                                    <Setter Property="IsVisible" Value="True"/>
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Row="2"
+                                         Spacing="{StaticResource SpacingLG}">
+                        <!-- Advertise -->
+                        <FeatureNavigationCard
+                            TapAutomationId="Advertise"
+                            FeatureIconBadgeStyle="{StaticResource FeatureIconBadgeAdvertiseStyle}"
+                            Title="Advertise"
+                            Subtitle="Be discoverable"
+                            FeatureIsActive="{Binding Status.IsAdvertising}"
+                            ActiveSubtitle="Broadcasting..."
+                            Command="{Binding NavigateToAdvertisingCommand}">
+                            <FeatureNavigationCard.Triggers>
+                                <DataTrigger TargetType="FeatureNavigationCard"
+                                             Binding="{Binding Status.Availability}"
+                                             Value="{x:Static nearby:NearbyAvailability.MissingPermissions}">
+                                    <Setter Property="IsEnabled"
+                                            Value="False"/>
+                                    <Setter Property="Opacity"
+                                            Value="0.5"/>
+                                </DataTrigger>
+                            </FeatureNavigationCard.Triggers>
+                        </FeatureNavigationCard>
+
+                        <!-- Discover -->
+                        <FeatureNavigationCard
+                            TapAutomationId="Discover"
+                            FeatureIconBadgeStyle="{StaticResource FeatureIconBadgeDiscoverStyle}"
+                            Title="Discover"
+                            Subtitle="Find nearby devices"
+                            FeatureIsActive="{Binding Status.IsDiscovering}"
+                            ActiveSubtitle="Scanning..."
+                            Command="{Binding NavigateToDiscoveryCommand}">
+                            <FeatureNavigationCard.Triggers>
+                                <DataTrigger TargetType="FeatureNavigationCard"
+                                             Binding="{Binding Status.Availability}"
+                                             Value="{x:Static nearby:NearbyAvailability.MissingPermissions}">
+                                    <Setter Property="IsEnabled"
+                                            Value="False"/>
+                                    <Setter Property="Opacity"
+                                            Value="0.5"/>
+                                </DataTrigger>
+                            </FeatureNavigationCard.Triggers>
+                        </FeatureNavigationCard>
+
+                        <!-- Connections -->
+                        <FeatureNavigationCard
+                            TapAutomationId="Connections"
+                            FeatureIconBadgeStyle="{StaticResource FeatureIconBadgeConnectionsStyle}"
+                            Title="Chat"
+                            Subtitle="No connections"
+                            FeatureIsActive="{Binding Connections.Count, Converter={StaticResource intToBoolConverter}}"
+                            ActiveSubtitle="{Binding Connections.Count, StringFormat='{0} connected'}"
+                            Command="{Binding NavigateToConnectionsCommand}"/>
+                    </VerticalStackLayout>
+
+                </Grid>
+            </ScrollView>
+            <ConnectedDevicesChip
+                Count="{Binding Connections.Count}"
+                Command="{Binding NavigateToConnectionsCommand}"
+                HorizontalOptions="End"
+                VerticalOptions="Start"
+                Margin="{StaticResource SpacingXL}"/>
+        </Grid>
+    </BasePage.Content>
+</BasePage>

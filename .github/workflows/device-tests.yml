@@ -1,0 +1,193 @@
+name: Device Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'src/Plugin.Maui.NearbyConnectivity/**'
+      - 'test/Plugin.Maui.NearbyConnectivity.DeviceTests/**'
+      - 'test/Plugin.Maui.NearbyConnectivity.DeviceTests.Runner/**'
+      - 'test/Plugin.Maui.NearbyConnectivity.UiTests/**'
+      - 'test/Plugin.Maui.NearbyConnectivity.UiTests.Host/**'
+      - 'scripts/device-tests.ps1'
+      - '.github/workflows/device-tests.yml'
+      - 'global.json'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+  workflow_dispatch:
+
+concurrency:
+  group: device-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  WORKLOAD_SET_VERSION: '10.0.400.1'
+
+jobs:
+
+  read-api-levels:
+    name: Read Android API levels
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      levels: ${{ steps.read.outputs.levels }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      # .config/android-api-levels.json is the single source of truth for which Android API
+      # levels this suite tests -- read here so the matrix below and a local
+      # ./scripts/device-tests.ps1 run resolve latest/common/minimum to the same numbers.
+      - id: read
+        run: echo "levels=$(jq -c '[.latest,.common,.minimum]' .config/android-api-levels.json)" >> "$GITHUB_OUTPUT"
+
+  android:
+    name: Android emulator (API ${{ matrix.level }}, ${{ matrix.suite }})
+    needs: read-api-levels
+    runs-on: ubuntu-latest
+    if: '!github.event.repository.fork'
+    # UiTests installs Appium and its driver on top of the same emulator boot, so its leg needs
+    # more headroom than the DeviceTests leg's 15 minutes.
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        level: ${{ fromJson(needs.read-api-levels.outputs.levels) }}
+        suite: [DeviceTests, UiTests]
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      # Ubuntu 24.04 uses the XDG convention (~/.config/.android/avd) but avdmanager/emulator's
+      # search order is $ANDROID_AVD_HOME, then $ANDROID_SDK_HOME/avd, then $HOME/.android/avd --
+      # unset, `avd create` can write somewhere the emulator never looks, so it succeeds (exit 0)
+      # while `avd start` reports "Unknown AVD name" against an AVD that does exist, just not
+      # where it's searched. Exporting to $GITHUB_ENV (not a job-level `env:` block, which can't
+      # see the runner's real $HOME at YAML-evaluation time) makes every later step -- create,
+      # start, and the AVD cache path -- agree on one location.
+      - name: Pin ANDROID_AVD_HOME / ANDROID_SDK_HOME
+        run: |
+          echo "ANDROID_AVD_HOME=$HOME/.android/avd" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_HOME=$HOME/.android" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+      - name: Install Android workload
+        run: dotnet workload install maui-android --version ${{ env.WORKLOAD_SET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Cache AVD
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.level }}-x86_64-google_apis
+          restore-keys: avd-${{ matrix.level }}-
+
+      - name: Run ${{ matrix.suite }} on emulator
+        run: pwsh ./scripts/device-tests.ps1 -Platform android -Suite ${{ matrix.suite }} -AndroidApiLevel ${{ matrix.level }}
+
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          mkdir -p artifacts
+          "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/platform-tools/adb" logcat -d > artifacts/logcat.txt 2>/dev/null || true
+          dotnet workload list > artifacts/workloads.txt 2>&1 || true
+          echo "--- artifacts ---"; ls -la artifacts/
+
+      - name: Upload TRX artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: android-${{ matrix.suite }}-${{ matrix.level }}
+          path: artifacts/
+          if-no-files-found: warn
+
+  ios:
+    name: iOS simulator (${{ matrix.suite }})
+    # Apple Silicon, unlike ci.yml and release.yml: the simulator runs arm64 natively here, and
+    # device-tests.ps1 picks the RID from the host. The unit build has no simulator to speed up.
+    runs-on: macos-26
+    if: '!github.event.repository.fork'
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [DeviceTests, UiTests]
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Install iOS workload
+        run: dotnet workload install maui-ios --version ${{ env.WORKLOAD_SET_VERSION }}
+
+      - name: Read required Xcode version from the iOS SDK
+        id: xcode-ver
+        run: |
+          set -euo pipefail
+          proj=test/Plugin.Maui.NearbyConnectivity.DeviceTests.Runner/Plugin.Maui.NearbyConnectivity.DeviceTests.Runner.csproj
+          required=$(dotnet msbuild "$proj" -p:TargetFramework=net10.0-ios -getProperty:RecommendedXcodeVersion)
+          if [ -z "$required" ]; then
+            required=$(dotnet msbuild "$proj" -p:TargetFramework=net10.0-ios -getProperty:_RecommendedXcodeVersion)
+          fi
+          if [ -z "$required" ]; then
+            echo "iOS SDK did not report a recommended Xcode version (both property names empty)." >&2
+            exit 1
+          fi
+          version=$(echo "$required" | cut -d. -f1-2)
+          echo "iOS SDK requires Xcode $required (matching on $version)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Select matching Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: ${{ steps.xcode-ver.outputs.version }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Run ${{ matrix.suite }} on simulator
+        run: pwsh ./scripts/device-tests.ps1 -Platform ios -Suite ${{ matrix.suite }}
+
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          mkdir -p artifacts
+          xcrun simctl spawn booted log collect --output artifacts/simulator.logarchive 2>/dev/null || true
+          dotnet workload list > artifacts/workloads.txt 2>&1 || true
+          echo "--- artifacts ---"; ls -la artifacts/
+
+      - name: Upload TRX artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: ios-${{ matrix.suite }}
+          path: artifacts/
+          if-no-files-found: warn

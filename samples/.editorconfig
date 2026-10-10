@@ -1,0 +1,5 @@
+[*.cs]
+dotnet_code_quality.ca1711.allowed_suffixes = Delegate
+
+# CS1591: missing XML comment. Only the library's public surface is documented.
+dotnet_diagnostic.CS1591.severity = none

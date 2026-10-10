@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(MobileTargetFrameworks)</TargetFrameworks>
+
+    <OutputType>Exe</OutputType>
+    <RootNamespace>NearbyChat</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <PublishTrimmed>true</PublishTrimmed>
+
+    <ApplicationTitle>NearbyChat</ApplicationTitle>
+    <ApplicationId>com.phunkeler.nearbychat</ApplicationId>
+    <MauiXamlInflator>SourceGen</MauiXamlInflator>
+
+    <SupportedOSPlatformVersion Condition="$(IsTargetPlatformIos) == true">26.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$(IsTargetPlatformAndroid) == true">24.0</SupportedOSPlatformVersion>
+
+    <MauiEnableXamlCBindingWithSourceCompilation>true</MauiEnableXamlCBindingWithSourceCompilation>
+    <DefineConstants>$(DefineConstants);MauiAllowImplicitXmlnsDeclaration</DefineConstants>
+
+    <!-- CA2252 fires in the MAUI generator's GlobalXmlns.g.cs: implicit xmlns declaration is a
+         preview feature, and generated code takes no attribute. -->
+    <NoWarn>$(NoWarn);CA2252</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+    <MauiSplashScreen Include="..\..\.assets\nuget.svg" Color="#512BD4" BaseSize="128,128" />
+    <MauiImage Include="Resources\Images\*" />
+    <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+    <MauiFont Include="Resources\Fonts\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Maui" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+    <PackageReference Include="Microsoft.Maui.Controls" />
+    <PackageReference Include="Microsoft.Maui.DevFlow.Agent" />
+    <PackageReference Include="Plugin.Maui.BottomSheet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Plugin.Maui.NearbyConnectivity\Plugin.Maui.NearbyConnectivity.csproj" />
+  </ItemGroup>
+</Project>

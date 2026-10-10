@@ -1,0 +1,216 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  build:
+    name: Build, test and analyze
+    runs-on: macos-26-intel
+    timeout-minutes: 30
+    env:
+      HAS_SONAR_TOKEN: ${{ secrets.SONAR_TOKEN != '' }}
+    steps:
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Cache SonarQube Cloud packages
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Restore local .NET tools
+        run: dotnet tool restore
+
+      # Pester is a PowerShell Gallery module, not a dotnet tool, so it cannot live in
+      # .config/dotnet-tools.json. Pinned so a Gallery release cannot change CI underneath us.
+      - name: Install Pester
+        shell: pwsh
+        run: Install-Module Pester -RequiredVersion 6.2.0 -Scope CurrentUser -Force -SkipPublisherCheck
+
+      - name: Test build scripts
+        shell: pwsh
+        run: |
+          $result = Invoke-Pester scripts/NearbyBuild.Tests.ps1 -Output Detailed -PassThru
+          if ($result.FailedCount -gt 0) { exit 1 }
+
+      - name: Restore Workloads
+        run: dotnet workload restore src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj
+
+      # Mirrors the gate in release.yml so a vulnerable dependency is caught on the pull request
+      # that introduces it, not at release time. Kept identical to that step on purpose — if one
+      # changes, change both.
+      - name: Check for vulnerable dependencies
+        run: |
+          set -euo pipefail
+
+          # `dotnet list package --vulnerable` exits 0 whether or not it finds anything, so the
+          # output has to be parsed.
+          report=$(dotnet list src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj \
+            package --vulnerable --include-transitive 2>&1)
+
+          echo "$report"
+
+          if echo "$report" | grep -q "has the following vulnerable packages"; then
+            echo "::error::Vulnerable dependencies found."
+            exit 1
+          fi
+
+          # A restore failure also produces no "vulnerable packages" line, which would pass the
+          # check unnoticed. Require positive confirmation that the scan actually ran.
+          if ! echo "$report" | grep -q "no vulnerable packages"; then
+            echo "::error::Vulnerability scan did not complete — treating as a failure rather than assuming clean."
+            exit 1
+          fi
+
+      - name: Check formatting
+        run: dotnet format whitespace --folder --exclude '**/obj/**' '**/bin/**' --verify-no-changes
+
+      # The scanner's build targets force TreatWarningsAsErrors off between begin and end, so the
+      # warning gate is this build, before begin.
+      - name: Build with warnings as errors
+        run: |
+          dotnet build src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj -c Release
+          dotnet build test/Plugin.Maui.NearbyConnectivity.UnitTests/Plugin.Maui.NearbyConnectivity.UnitTests.csproj -c Release
+
+      # A fork's pull request gets no SONAR_TOKEN. The analysis steps skip, and the build, the
+      # tests, and the coverage gate still run.
+      - name: Begin SonarQube Cloud analysis
+        if: env.HAS_SONAR_TOKEN == 'true'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet dotnet-sonarscanner begin /k:"phunkeler_Plugin.Maui.NearbyConnectivity" /o:"phunkeler" /d:sonar.token="$SONAR_TOKEN" /d:sonar.cs.vscoveragexml.reportsPaths="${{ runner.temp }}/coverage.xml" /d:sonar.exclusions="test/**/**,samples/**,.github/**,.vscode/**,global.json,nuget.config"
+
+      - name: Build and test
+        run: pwsh scripts/Invoke-Tests.ps1 -Coverage -CoveragePath "${{ runner.temp }}/coverage.xml"
+
+      - name: End SonarQube Cloud analysis
+        if: env.HAS_SONAR_TOKEN == 'true'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+
+      # The tutorial's snippets are included from this sample, so a compile break here means the
+      # docs are wrong. Android alone is enough to prove the snippets compile.
+      - name: Build the Minimal sample
+        run: dotnet build samples/Minimal/Minimal.csproj -f net10.0-android -c Release
+
+      - name: Build the NearbyChat sample
+        run: dotnet build samples/NearbyChat/NearbyChat.csproj -f net10.0-android -c Release
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage
+          path: ${{ runner.temp }}/coverage.xml
+          if-no-files-found: warn
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unit-test-results
+          path: artifacts/*.trx
+          if-no-files-found: warn
+
+      # This is the in-repo coverage gate: the action exits non-zero when the threshold is
+      # breached, failing the job. Sonar's quality gate is the second opinion, not the blocker.
+      #
+      # Line coverage only. ReportGenerator's DynamicCodeCoverage parser emits no branch metric
+      # for this report, so a branchCoverage threshold would be silently inert rather than
+      # enforcing anything.
+      #
+      # 75 against a 90.2% baseline. Generated code is excluded in test/coverage.runsettings:
+      # NearbyLog's LoggerMessage methods for the platform adapters compile into net10.0, and no
+      # unit test can call them. ReportGenerator counts a partially-covered line as covered, so
+      # its number is higher than the one dotnet-coverage prints.
+      - name: Generate coverage report
+        uses: danielpalme/ReportGenerator-GitHub-Action@d3ebf1f760f7d8ab92cc44d9bcfee7ad73722a31 # 5.5.11
+        with:
+          reports: ${{ runner.temp }}/coverage.xml
+          targetdir: ${{ runner.temp }}/coveragereport
+          reporttypes: MarkdownSummaryGithub
+          customSettings: 'minimumCoverageThresholds:lineCoverage=75'
+
+      - name: Add coverage to job summary
+        if: always()
+        run: cat ${{ runner.temp }}/coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+
+      # Handed to the comment job, which cannot regenerate it -- that job has no build output.
+      - name: Upload coverage summary
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-summary
+          path: ${{ runner.temp }}/coveragereport/SummaryGithub.md
+          if-no-files-found: warn
+
+  # Separated from `build` purely to scope `pull-requests: write` to the one step that needs it.
+  # `always()` so a coverage-gate failure still posts the numbers that caused it.
+  comment:
+    name: Comment coverage on PR
+    needs: build
+    # A fork's or Dependabot's pull request gets a read-only token, so commenting would fail.
+    if: >-
+      always() && github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Download coverage summary
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: coverage-summary
+          path: coverage-summary
+
+      - name: Add comment to PR
+        if: steps.download.outcome == 'success'
+        run: gh pr comment $PR_NUMBER --edit-last --create-if-none --body-file coverage-summary/SummaryGithub.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        with:
+          fail-on-severity: moderate

@@ -1,0 +1,253 @@
+<BottomSheet x:Class="NearbyChat.Controls.PeerDataBottomSheet"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:android="clr-namespace:Plugin.Maui.BottomSheet.PlatformConfiguration.AndroidSpecific;assembly=Plugin.Maui.BottomSheet"
+             android:BottomSheet.ShouldRemoveExpandedCorners="False"
+             ShowHeader="True"
+             HasHandle="False"
+             SizeMode="FitToContent"
+             CornerRadius="24"
+             IsDraggable="False"
+             BackgroundColor="{toolkit:AppThemeResource Surface}"
+             x:DataType="PeerDataViewModel"
+             x:Name="this"
+             Padding="{StaticResource SheetPadding}"
+             Margin="{StaticResource SpacingXL}">
+
+    <BottomSheet.Header>
+        <!-- The chat sheet's header: no handle, since neither sheet drags, and its own close button,
+             since the plugin drops ShowCloseButton once the header has custom content. -->
+        <BottomSheetHeader>
+            <ContentView Padding="{StaticResource SheetTitleGap}">
+                <Grid ColumnDefinitions="*, Auto"
+                      ColumnSpacing="{StaticResource SpacingSM}">
+                    <Label Text="{Binding Row.DisplayName, StringFormat='Shared with {0}'}"
+                           AutomationId="PeerDataTitle"
+                           FontSize="18"
+                           HorizontalOptions="Start"
+                           VerticalOptions="Center"
+                           LineBreakMode="TailTruncation"
+                           Style="{StaticResource CardTitle}"/>
+                    <Button Grid.Column="1"
+                            Text="&#x2715;"
+                            AutomationId="PeerDataCloseButton"
+                            SemanticProperties.Description="Close"
+                            Command="{Binding CloseCommand}"
+                            WidthRequest="44"
+                            HeightRequest="44"
+                            Padding="0"
+                            BackgroundColor="Transparent"
+                            TextColor="{toolkit:AppThemeResource TextQuaternary}"
+                            FontSize="20"/>
+                </Grid>
+            </ContentView>
+        </BottomSheetHeader>
+    </BottomSheet.Header>
+
+    <BottomSheet.Content>
+        <BottomSheetContent>
+            <BottomSheetContent.ContentTemplate>
+                <DataTemplate x:DataType="PeerDataViewModel">
+                    <VerticalStackLayout Spacing="{StaticResource SpacingLG}">
+                        <Grid ColumnDefinitions="*, *"
+                              ColumnSpacing="12">
+                            <Border Style="{StaticResource StatChipBorderStyle}"
+                                    Padding="14"
+                                    VerticalOptions="Fill"
+                                    StrokeShape="RoundRectangle 16">
+                                <VerticalStackLayout Spacing="4">
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Image Style="{StaticResource StatChipIconStyle}"
+                                               WidthRequest="14"
+                                               HeightRequest="14">
+                                            <Image.Source>
+                                                <FontImageSource FontFamily="NearbyChatIcons"
+                                                                 Glyph="{StaticResource icon-up}"
+                                                                 Color="{toolkit:AppThemeResource TextTertiary}"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <Label FontSize="13"
+                                               Text="Sent"
+                                               TextColor="{toolkit:AppThemeResource TextTertiary}"
+                                               VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                    <Label AutomationId="PeerDataSent"
+                                           FontAttributes="Bold"
+                                           FontSize="22"
+                                           Text="{Binding Row.Sent.Data}"
+                                           TextColor="{toolkit:AppThemeResource TextPrimary}"/>
+                                    <BoxView HeightRequest="1"
+                                             Margin="0,8,0,4"
+                                             Color="{toolkit:AppThemeResource Divider}"/>
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Image Style="{StaticResource StatChipIconStyle}">
+                                            <Image.Source>
+                                                <FontImageSource FontFamily="NearbyChatIcons"
+                                                                 Glyph="{StaticResource icon-message}"
+                                                                 Color="{toolkit:AppThemeResource TextTertiary}"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <Label AutomationId="PeerDataSentMessages"
+                                               FontSize="15"
+                                               Text="{Binding Row.Sent.Messages}"
+                                               TextColor="{toolkit:AppThemeResource TextPrimary}"
+                                               VerticalOptions="Center">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding Row.Sent.HasMessages}"
+                                                             Value="False">
+                                                    <Setter Property="TextColor"
+                                                            Value="{toolkit:AppThemeResource TextTertiary}"/>
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Image Style="{StaticResource StatChipIconStyle}">
+                                            <Image.Source>
+                                                <FontImageSource FontFamily="NearbyChatIcons"
+                                                                 Glyph="{StaticResource icon-attachment}"
+                                                                 Color="{toolkit:AppThemeResource TextTertiary}"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <Label AutomationId="PeerDataSentFiles"
+                                               FontSize="15"
+                                               Text="{Binding Row.Sent.Files}"
+                                               TextColor="{toolkit:AppThemeResource TextPrimary}"
+                                               VerticalOptions="Center">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding Row.Sent.HasFiles}"
+                                                             Value="False">
+                                                    <Setter Property="TextColor"
+                                                            Value="{toolkit:AppThemeResource TextTertiary}"/>
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Column="1"
+                                    Style="{StaticResource StatChipBorderStyle}"
+                                    Padding="14"
+                                    VerticalOptions="Fill"
+                                    StrokeShape="RoundRectangle 16">
+                                <VerticalStackLayout Spacing="4">
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Image Style="{StaticResource StatChipIconStyle}"
+                                               WidthRequest="14"
+                                               HeightRequest="14">
+                                            <Image.Source>
+                                                <FontImageSource FontFamily="NearbyChatIcons"
+                                                                 Glyph="{StaticResource icon-down}"
+                                                                 Color="{toolkit:AppThemeResource TextTertiary}"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <Label FontSize="13"
+                                               Text="Received"
+                                               TextColor="{toolkit:AppThemeResource TextTertiary}"
+                                               VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                    <Label AutomationId="PeerDataReceived"
+                                           FontAttributes="Bold"
+                                           FontSize="22"
+                                           Text="{Binding Row.Received.Data}"
+                                           TextColor="{toolkit:AppThemeResource TextPrimary}"/>
+                                    <BoxView HeightRequest="1"
+                                             Margin="0,8,0,4"
+                                             Color="{toolkit:AppThemeResource Divider}"/>
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Image Style="{StaticResource StatChipIconStyle}">
+                                            <Image.Source>
+                                                <FontImageSource FontFamily="NearbyChatIcons"
+                                                                 Glyph="{StaticResource icon-message}"
+                                                                 Color="{toolkit:AppThemeResource TextTertiary}"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <Label AutomationId="PeerDataReceivedMessages"
+                                               FontSize="15"
+                                               Text="{Binding Row.Received.Messages}"
+                                               TextColor="{toolkit:AppThemeResource TextPrimary}"
+                                               VerticalOptions="Center">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding Row.Received.HasMessages}"
+                                                             Value="False">
+                                                    <Setter Property="TextColor"
+                                                            Value="{toolkit:AppThemeResource TextTertiary}"/>
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Image Style="{StaticResource StatChipIconStyle}">
+                                            <Image.Source>
+                                                <FontImageSource FontFamily="NearbyChatIcons"
+                                                                 Glyph="{StaticResource icon-attachment}"
+                                                                 Color="{toolkit:AppThemeResource TextTertiary}"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <Label AutomationId="PeerDataReceivedFiles"
+                                               FontSize="15"
+                                               Text="{Binding Row.Received.Files}"
+                                               TextColor="{toolkit:AppThemeResource TextPrimary}"
+                                               VerticalOptions="Center">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding Row.Received.HasFiles}"
+                                                             Value="False">
+                                                    <Setter Property="TextColor"
+                                                            Value="{toolkit:AppThemeResource TextTertiary}"/>
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </HorizontalStackLayout>
+                                    <!-- Received bytes include messages held until the codes are compared,
+                                         which the message count leaves out; this line accounts for them. -->
+                                    <Label AutomationId="PeerDataHeld"
+                                           IsVisible="{Binding Row.HasHeld}"
+                                           FontAttributes="Bold"
+                                           FontSize="13"
+                                           Text="{Binding Row.HeldCount, StringFormat='+{0} waiting for verification'}"
+                                           TextColor="{toolkit:AppThemeResource StatusWarning}"/>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+
+                        <Border AutomationId="PeerDataTrust"
+                                IsVisible="{Binding Row.IsConfirmed, Converter={StaticResource invertedBoolConverter}}"
+                                Padding="14"
+                                Stroke="Transparent"
+                                StrokeShape="RoundRectangle 16"
+                                Background="{StaticResource StatusWarningSurface}">
+                            <Grid ColumnDefinitions="*, Auto"
+                                  ColumnSpacing="12">
+                                <VerticalStackLayout Spacing="2"
+                                                     VerticalOptions="Center">
+                                    <Label FontAttributes="Bold"
+                                           FontSize="{StaticResource FontSizeMD}"
+                                           Text="Not verified"
+                                           TextColor="{toolkit:AppThemeResource StatusWarning}"/>
+                                    <Label FontSize="{StaticResource FontSizeSM}"
+                                           Text="{Binding Row.DisplayName, StringFormat='Compare codes with {0}.'}"
+                                           TextColor="{toolkit:AppThemeResource TextPrimary}"/>
+                                </VerticalStackLayout>
+                                <Button Grid.Column="1"
+                                        AutomationId="PeerDataVerifyButton"
+                                        BackgroundColor="{toolkit:AppThemeResource StatusWarning}"
+                                        Command="{Binding VerifyCommand}"
+                                        CornerRadius="22"
+                                        FontAttributes="Bold"
+                                        FontSize="15"
+                                        HeightRequest="44"
+                                        Padding="18,0"
+                                        Text="Verify"
+                                        TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Slate900}}"
+                                        VerticalOptions="Center"/>
+                            </Grid>
+                        </Border>
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </BottomSheetContent.ContentTemplate>
+        </BottomSheetContent>
+    </BottomSheet.Content>
+</BottomSheet>

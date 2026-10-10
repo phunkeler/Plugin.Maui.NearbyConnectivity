@@ -1,0 +1,21 @@
+<Project>
+
+  <!--
+    Public API baseline, tracked in PublicAPI/PublicAPI.*.txt.
+    One baseline for every target framework: the tracked surface is identical across them, because
+    the members that differ by platform (NearbyAndroidOptions.ConnectionType) hang off types that
+    compile everywhere.
+
+    Adding anything public fails the build until it is recorded. Build, read the RS0016 errors,
+    add the listed lines. Use -p:PublicApiType=Skip to bypass locally while iterating.
+  -->
+  <ItemGroup Condition="'$(PublicApiType)' == 'Skip'">
+    <PackageReference Remove="Microsoft.CodeAnalysis.PublicApiAnalyzers" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(PublicApiType)' != 'Skip'">
+    <AdditionalFiles Include="PublicAPI\PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI\PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
+</Project>

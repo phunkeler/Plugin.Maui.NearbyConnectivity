@@ -1,0 +1,32 @@
+- name: Get started
+  href: getting-started.md
+- name: How-to
+  items:
+    - name: Set up Android and iOS
+      href: platform-setup.md
+    - name: Accept and make connections
+      href: connect.md
+    - name: Send and receive payloads
+      href: payloads.md
+    - name: Show a presence before connecting
+      href: presence.md
+    - name: Bind to a MAUI page
+      href: bind-ui.md
+    - name: Test code that uses the plugin
+      href: test-your-app.md
+    - name: Turn on logging
+      href: logging.md
+    - name: Troubleshooting
+      href: troubleshooting.md
+- name: Reference
+  items:
+    - name: Options and limits
+      href: configuration.md
+    - name: API reference
+      href: api/
+- name: Explanation
+  items:
+    - name: Platform behavior
+      href: platform-behavior.md
+    - name: Security
+      href: security.md

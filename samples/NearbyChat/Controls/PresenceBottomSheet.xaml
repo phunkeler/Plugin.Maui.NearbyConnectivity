@@ -1,0 +1,274 @@
+<BottomSheet x:Class="NearbyChat.Controls.PresenceBottomSheet"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:android="clr-namespace:Plugin.Maui.BottomSheet.PlatformConfiguration.AndroidSpecific;assembly=Plugin.Maui.BottomSheet"
+             xmlns:nearby="clr-namespace:Plugin.Maui.NearbyConnectivity;assembly=Plugin.Maui.NearbyConnectivity"
+             android:BottomSheet.ShouldRemoveExpandedCorners="False"
+             ShowHeader="True"
+             HasHandle="False"
+             SizeMode="FitToContent"
+             CornerRadius="24"
+             IsDraggable="False"
+             BackgroundColor="{toolkit:AppThemeResource Background}"
+             x:DataType="PresenceViewModel"
+             x:Name="this"
+             Padding="{StaticResource SheetPadding}"
+             Margin="{StaticResource SpacingXL}">
+
+    <BottomSheet.Header>
+        <BottomSheetHeader>
+            <ContentView Padding="{StaticResource SheetTitleGap}">
+                <Grid ColumnDefinitions="*, Auto"
+                      ColumnSpacing="{StaticResource SpacingSM}">
+                    <Label Text="Your presence"
+                           AutomationId="PresenceTitle"
+                           FontSize="18"
+                           HorizontalOptions="Start"
+                           VerticalOptions="Center"
+                           Style="{StaticResource CardTitle}"/>
+                    <Button Grid.Column="1"
+                            Text="&#x2715;"
+                            AutomationId="PresenceCloseButton"
+                            SemanticProperties.Description="Close"
+                            Command="{Binding CloseCommand}"
+                            WidthRequest="44"
+                            HeightRequest="44"
+                            Padding="0"
+                            BackgroundColor="Transparent"
+                            TextColor="{toolkit:AppThemeResource TextQuaternary}"
+                            FontSize="20"/>
+                </Grid>
+            </ContentView>
+        </BottomSheetHeader>
+    </BottomSheet.Header>
+
+    <BottomSheet.Content>
+        <BottomSheetContent>
+            <BottomSheetContent.ContentTemplate>
+                <DataTemplate x:DataType="PresenceViewModel">
+                    <!-- The preview is what nearby devices see, so every pick below changes it.
+                         The busy banner and the error share the slot above the field, and Save
+                         sits beside the field as the chat composer's send button does: the
+                         keyboard covers everything below the focused field. -->
+                    <VerticalStackLayout Spacing="{StaticResource SpacingLG}">
+                        <Grid ColumnDefinitions="Auto, *, Auto"
+                              ColumnSpacing="{StaticResource SpacingLG}">
+                            <DeviceAvatar AutomationId="PresencePreview"
+                                        AvatarSize="64"
+                                        Choice="{Binding Choice}"
+                                        DisplayName="{Binding Name}"
+                                        VerticalOptions="Center"/>
+                            <VerticalStackLayout Grid.Column="1"
+                                                 Spacing="2"
+                                                 VerticalOptions="Center">
+                                <Label Text="{Binding Name}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       Style="{StaticResource CardTitle}"/>
+                                <Label Text="What others see"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       Style="{StaticResource CardSubtitle}"/>
+                            </VerticalStackLayout>
+                            <Button Grid.Column="2"
+                                    Text="Surprise me"
+                                    AutomationId="SurpriseMeButton"
+                                    Command="{Binding SurpriseMeCommand}"
+                                    HeightRequest="44"
+                                    Padding="12,0"
+                                    VerticalOptions="Center"
+                                    BackgroundColor="Transparent"
+                                    BorderColor="{toolkit:AppThemeResource AccentConnectionsText}"
+                                    BorderWidth="2"
+                                    TextColor="{toolkit:AppThemeResource AccentConnectionsText}"
+                                    FontAttributes="Bold"
+                                    CornerRadius="22"
+                                    ContentLayout="Left, 6"
+                                    FontSize="{StaticResource FontSizeSM}">
+                                <Button.ImageSource>
+                                    <FontImageSource FontFamily="NearbyChatIcons"
+                                                     Glyph="{StaticResource icon-shuffle}"
+                                                     Size="16"
+                                                     Color="{toolkit:AppThemeResource AccentConnectionsText}"/>
+                                </Button.ImageSource>
+                            </Button>
+                        </Grid>
+
+                        <!-- Five faces to a row: each cell is a fifth of the width, so the row
+                             count never depends on how many 58s fit, and the tile sits centred
+                             in its cell. Each face has its own gallery color and silhouette so
+                             ten faces read as ten. A tile is 56 and fills its cell; the selected
+                             one shrinks to 48 inside a 3 ring in text-primary, so the ring reads
+                             on every color and nothing else moves. The preview above is what the
+                             chosen color applies to. -->
+                        <FlexLayout Wrap="Wrap"
+                                    Margin="0,0,0,-12"
+                                    BindableLayout.ItemsSource="{Binding Faces}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="AvatarTile">
+                                    <ContentView FlexLayout.Basis="20%">
+                                    <Border AutomationId="{Binding Index, StringFormat='Face_{0}'}"
+                                            SemanticProperties.Description="{Binding Description}"
+                                            HorizontalOptions="Center"
+                                            WidthRequest="58"
+                                            HeightRequest="58"
+                                            Margin="0,0,0,12"
+                                            Padding="1"
+                                            StrokeThickness="0"
+                                            Stroke="{toolkit:AppThemeResource TextPrimary}"
+                                            StrokeShape="{Binding CornerFraction, Converter={StaticResource avatarShapeConverter}, ConverterParameter=58}"
+                                            BackgroundColor="Transparent">
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border"
+                                                         Binding="{Binding IsSelected}"
+                                                         Value="True">
+                                                <Setter Property="StrokeThickness"
+                                                        Value="3"/>
+                                                <Setter Property="Padding"
+                                                        Value="2"/>
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding Select}"/>
+                                        </Border.GestureRecognizers>
+                                        <Border StrokeThickness="0"
+                                                StrokeShape="{Binding CornerFraction, Converter={StaticResource avatarShapeConverter}, ConverterParameter=56}"
+                                                BackgroundColor="{Binding PaletteIndex, Converter={StaticResource paletteColorConverter}}">
+                                            <Label Text="{Binding Glyph}"
+                                                   FontFamily="NearbyChatIcons"
+                                                   FontSize="40"
+                                                   TextColor="{StaticResource White}"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center"/>
+                                        </Border>
+                                    </Border>
+                                    </ContentView>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+
+                        <!-- 32 dots with a 44 hit area: the 6 of padding is pulled back out by
+                             the margins so the row sits 16 from the grid and the field. -->
+                        <HorizontalStackLayout Spacing="6"
+                                               Margin="0,-6">
+                            <Label Text="Color"
+                                   WidthRequest="48"
+                                   VerticalOptions="Center"
+                                   Style="{StaticResource CardSubtitle}"/>
+                            <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Palette}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="AvatarTile">
+                                        <Border AutomationId="{Binding Index, StringFormat='Color_{0}'}"
+                                                SemanticProperties.Description="{Binding Description}"
+                                                WidthRequest="44"
+                                                HeightRequest="44"
+                                                Padding="6"
+                                                StrokeThickness="0"
+                                                BackgroundColor="Transparent">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding Select}"/>
+                                            </Border.GestureRecognizers>
+                                            <Border StrokeThickness="0"
+                                                    Stroke="{toolkit:AppThemeResource TextPrimary}"
+                                                    StrokeShape="RoundRectangle 16"
+                                                    BackgroundColor="{Binding PaletteIndex, Converter={StaticResource paletteColorConverter}}">
+                                                <Border.Triggers>
+                                                    <DataTrigger TargetType="Border"
+                                                                 Binding="{Binding IsSelected}"
+                                                                 Value="True">
+                                                        <Setter Property="StrokeThickness"
+                                                                Value="3"/>
+                                                    </DataTrigger>
+                                                </Border.Triggers>
+                                            </Border>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </HorizontalStackLayout>
+                        </HorizontalStackLayout>
+
+                        <!-- The slot above the field: while anything runs, one banner names it
+                             and carries the way forward, in the warning hue the pills use, so
+                             the disabled Save beside it needs no sentence. A blank name also
+                             disables Save, with the empty field as its own explanation. The
+                             byte-limit error is the one message that takes the slot. -->
+                        <Border IsVisible="{Binding IsBusy}"
+                                AutomationId="BusyBanner"
+                                HeightRequest="44"
+                                Padding="12,0,0,0"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 12"
+                                Background="{StaticResource StatusWarningSurface}">
+                            <Grid ColumnDefinitions="*, Auto"
+                                  ColumnSpacing="{StaticResource SpacingSM}">
+                                <Label AutomationId="NameHint"
+                                       Text="{Binding BusyReason}"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       FontSize="{StaticResource FontSizeSM}"
+                                       TextColor="{toolkit:AppThemeResource StatusWarning}"/>
+                                <Button Grid.Column="1"
+                                        Text="Stop all"
+                                        AutomationId="StopAllButton"
+                                        Command="{Binding StopAllCommand}"
+                                        HeightRequest="44"
+                                        Padding="12,0"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{toolkit:AppThemeResource StatusWarning}"
+                                        FontAttributes="Bold"
+                                        FontSize="{StaticResource FontSizeSM}"/>
+                            </Grid>
+                        </Border>
+                        <Label AutomationId="NameError"
+                               IsVisible="{Binding HasError}"
+                               LineBreakMode="WordWrap"
+                               FontSize="{StaticResource FontSizeSM}"
+                               TextColor="{toolkit:AppThemeResource StatusError}"
+                               Text="{Binding Error}"/>
+
+                        <Grid ColumnDefinitions="*, Auto"
+                              ColumnSpacing="{StaticResource SpacingSM}">
+                            <Border HeightRequest="44"
+                                    Padding="16,0"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 22"
+                                    BackgroundColor="{toolkit:AppThemeResource ChatBubble}">
+                                <Entry AutomationId="NameEntry"
+                                       HeightRequest="44"
+                                       VerticalOptions="Center"
+                                       Placeholder="Name"
+                                       MaxLength="{x:Static nearby:NearbyPresence.MaxDisplayNameBytes}"
+                                       ReturnType="Done"
+                                       ReturnCommand="{Binding SaveCommand}"
+                                       PlaceholderColor="{toolkit:AppThemeResource TextTertiary}"
+                                       Text="{Binding Name}"
+                                       TextColor="{toolkit:AppThemeResource TextPrimary}"/>
+                            </Border>
+                            <Button Grid.Column="1"
+                                    Text="Save"
+                                    AutomationId="NameSaveButton"
+                                    Command="{Binding SaveCommand}"
+                                    HeightRequest="44"
+                                    Padding="20,0"
+                                    BackgroundColor="{StaticResource AccentConnections}"
+                                    TextColor="{StaticResource White}"
+                                    FontAttributes="Bold"
+                                    CornerRadius="22"
+                                    FontSize="{StaticResource FontSizeSM}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding CanSave}"
+                                                 Value="False">
+                                        <Setter Property="Opacity"
+                                                Value="0.4"/>
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </Grid>
+
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </BottomSheetContent.ContentTemplate>
+        </BottomSheetContent>
+    </BottomSheet.Content>
+</BottomSheet>

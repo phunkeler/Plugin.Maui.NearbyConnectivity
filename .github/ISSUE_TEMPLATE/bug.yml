@@ -1,0 +1,53 @@
+name: Bug report
+description: Something the plugin does that its documentation says it should not.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [Platform behavior](https://phunkeler.github.io/Plugin.Maui.NearbyConnectivity/docs/platform-behavior.html) first: connections dropping on backgrounding and no peer authentication are documented, not bugs.
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      placeholder: 1.0.0-preview.1
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options:
+        - Android
+        - iOS
+        - Both
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS version and device
+      description: One line per device involved.
+      placeholder: Android 14, Pixel 7; iOS 18.2, iPhone 15
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got. Exception text goes in a code block.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: The smallest code or steps that show it. Two-device bugs need both sides' steps.
+      render: csharp
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Output for the `Plugin.Maui.NearbyConnectivity` logger category at Debug, if you have it. Remove device names you do not want public.
+      render: text

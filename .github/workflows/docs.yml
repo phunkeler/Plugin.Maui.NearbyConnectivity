@@ -1,0 +1,99 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths: &docs-paths
+      - 'docs/**'
+      - 'src/**'
+      - 'samples/Minimal/**'
+      - 'README.md'
+      - 'CONTRIBUTING.md'
+      - 'SECURITY.md'
+      - '.github/workflows/docs.yml'
+  # ci.yml skips Markdown-only commits, so this is the only gate a docs change passes through.
+  # The build and the link check run; publishing does not.
+  pull_request:
+    paths: *docs-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0  # Nerdbank.GitVersioning refuses shallow clones
+
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore local .NET tools
+        run: dotnet tool restore
+
+      # metadata builds the library as plain net10.0 (docfx.json overrides TargetFrameworks), so no
+      # Android/iOS workload is needed here. If that stops holding, move to macos-26-intel and add
+      # `dotnet workload restore`.
+      - name: Build site
+        run: dotnet docfx docs/docfx.json --warningsAsErrors
+
+      # The two XML snippets in the tutorial are included by line range, because DocFX reads
+      # #region markers only in source files. A range silently renders the wrong lines if the
+      # sample shifts, and the build stays green, so check the rendered page for what must be in it.
+      - name: Check the tutorial's snippets rendered
+        run: |
+          set -euo pipefail
+          page=docs/_site/docs/getting-started.html
+          for needle in AddNearbyConnectivity neverForLocation NSBonjourServices \
+                        NSLocalNetworkUsageDescription RequestAsync Advertiser Discoverer SendAsync PayloadsAsync StopAllAsync; do
+            if ! grep -q "$needle" "$page"; then
+              echo "::error::$needle is missing from the built tutorial. A snippet include resolved to nothing."
+              exit 1
+            fi
+          done
+
+      # --remap points the absolute phunkeler.github.io URLs in README.md and in the library's
+      # <seealso href> docs at the site that was just built, so renaming a page fails here rather
+      # than 404ing for a reader after the merge.
+      - name: Check links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          fail: true
+          args: >-
+            --no-progress
+            --remap 'https://phunkeler.github.io/Plugin.Maui.NearbyConnectivity/(.*) file://${{ github.workspace }}/docs/_site/$1'
+            README.md CONTRIBUTING.md SECURITY.md 'docs/_site/**/*.html'
+
+      - if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: docs/_site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

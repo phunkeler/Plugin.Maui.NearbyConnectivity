@@ -1,0 +1,374 @@
+<BottomSheet x:Class="NearbyChat.Controls.ChatBottomSheet"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:android="clr-namespace:Plugin.Maui.BottomSheet.PlatformConfiguration.AndroidSpecific;assembly=Plugin.Maui.BottomSheet"
+             android:BottomSheet.ShouldRemoveExpandedCorners="False"
+             ShowHeader="True"
+             HasHandle="False"
+             SizeMode="FitToContent"
+             CornerRadius="24"
+             IsDraggable="False"
+             BackgroundColor="{toolkit:AppThemeResource Background}"
+             x:DataType="ChatViewModel"
+             x:Name="this"
+             Margin="{StaticResource SpacingXL}">
+
+    <BottomSheet.Header>
+        <BottomSheetHeader>
+            <ContentView>
+                <VerticalStackLayout Spacing="{StaticResource SpacingSM}">
+                    <!-- The plugin drops its own close button when the header has custom content,
+                         so the sheet draws one. It is the visible way out besides system back. -->
+                    <Grid ColumnDefinitions="*, Auto, Auto"
+                          ColumnSpacing="{StaticResource SpacingSM}">
+                        <HorizontalStackLayout Spacing="{StaticResource SpacingSM}"
+                                               HorizontalOptions="Start">
+                            <DeviceAvatar AvatarSize="28"
+                                        Presence="{Binding Device.Presence}"
+                                        VerticalOptions="Center"/>
+                            <Label Text="{Binding Device.Presence.DisplayName}"
+                                   VerticalOptions="Center"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1"
+                                   Style="{StaticResource CardTitle}"/>
+                        </HorizontalStackLayout>
+                        <!-- The same pill as the device row, so the reason sending is allowed stays
+                             in view while the sheet covers the row. -->
+                        <Border Grid.Column="1"
+                                Style="{StaticResource DeviceRowStatusPillBorderStyle}"
+                                Background="{StaticResource StatusWarningSurface}">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border"
+                                             Binding="{Binding IsConfirmed}"
+                                             Value="True">
+                                    <Setter Property="Background"
+                                            Value="{StaticResource StatusSuccessSurface}"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <HorizontalStackLayout Spacing="{StaticResource SpacingXS}"
+                                                   VerticalOptions="Center">
+                                <Image WidthRequest="12"
+                                       HeightRequest="12"
+                                       VerticalOptions="Center"
+                                       IsVisible="{Binding IsConfirmed}">
+                                    <Image.Source>
+                                        <FontImageSource FontFamily="NearbyChatIcons"
+                                                         Glyph="{StaticResource icon-check}"
+                                                         Color="{toolkit:AppThemeResource StatusSuccessText}"/>
+                                    </Image.Source>
+                                </Image>
+                                <Label Style="{StaticResource DeviceRowStatusPillLabelStyle}"
+                                       AutomationId="ChatVerificationStatus"
+                                       Text="Unverified"
+                                       TextColor="{toolkit:AppThemeResource StatusWarning}">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label"
+                                                     Binding="{Binding IsConfirmed}"
+                                                     Value="True">
+                                            <Setter Property="Text"
+                                                    Value="Verified"/>
+                                            <Setter Property="TextColor"
+                                                    Value="{toolkit:AppThemeResource StatusSuccessText}"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </HorizontalStackLayout>
+                        </Border>
+                        <Button Grid.Column="2"
+                                Text="&#x2715;"
+                                AutomationId="ChatCloseButton"
+                                SemanticProperties.Description="Close the chat"
+                                Command="{Binding CloseCommand}"
+                                WidthRequest="44"
+                                HeightRequest="44"
+                                Padding="0"
+                                BackgroundColor="Transparent"
+                                TextColor="{toolkit:AppThemeResource TextQuaternary}"
+                                FontSize="20"/>
+                    </Grid>
+                    <BoxView HeightRequest="1"
+                             VerticalOptions="End"
+                             Color="{toolkit:AppThemeResource Divider}"/>
+                </VerticalStackLayout>
+            </ContentView>
+        </BottomSheetHeader>
+    </BottomSheet.Header>
+
+    <BottomSheet.Content>
+        <BottomSheetContent>
+            <BottomSheetContent.ContentTemplate>
+                <DataTemplate x:DataType="ChatViewModel">
+                    <!-- No row spacing: rows 1 and 2 are often empty, and a spacing still
+                         sits beside an empty row, which left a dead band above the composer.
+                         The rows that show carry their own margins instead. -->
+                    <Grid RowDefinitions="*, Auto, Auto">
+                        <!-- The list and the entry stay out of the tree until the code is
+                             confirmed: the sheet fits its content, so an unverified chat is just
+                             the verification card, and confirming grows it into the conversation.
+                             A CollectionView in a star row would otherwise measure to the screen. -->
+                        <CollectionView
+                            x:Name="ChatList"
+                            Loaded="OnChatListLoaded"
+                            IsVisible="{Binding IsConfirmed}"
+                            ItemsSource="{Binding Messages}"
+                            ItemsUpdatingScrollMode="KeepLastItemInView"
+                            Background="Transparent"
+                            ItemTemplate="{StaticResource ChatMessageViewModelDataTemplateSelector}">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical"
+                                                   ItemSpacing="{StaticResource SpacingXS}"/>
+                            </CollectionView.ItemsLayout>
+                        </CollectionView>
+
+                        <!-- Not the list's EmptyView: that makes the list measure as tall as the
+                             sheet allows, so an empty chat would open at full height. It takes the
+                             verification card's row, which is empty whenever this shows, so one
+                             row spacing sits above it and one below, between header and composer. -->
+                        <Label Grid.Row="1"
+                               AutomationId="ChatEmptyLabel"
+                               Text="No messages yet"
+                               Margin="0,24,0,16"
+                               IsVisible="False"
+                               HorizontalTextAlignment="Center"
+                               Style="{StaticResource CardSubtitle}">
+                            <Label.Triggers>
+                                <MultiTrigger TargetType="Label">
+                                    <MultiTrigger.Conditions>
+                                        <BindingCondition Binding="{Binding Messages.Count}"
+                                                          Value="0"/>
+                                        <BindingCondition Binding="{Binding IsConfirmed}"
+                                                          Value="True"/>
+                                        <BindingCondition Binding="{Binding IsReceiving}"
+                                                          Value="False"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter Property="IsVisible"
+                                            Value="True"/>
+                                </MultiTrigger>
+                            </Label.Triggers>
+                        </Label>
+
+                        <!-- Inbound transfer strip: incoming files only materialize as a message
+                             once fully received, so progress renders as a transient strip at the
+                             bottom of the message list until the message arrives. The size is
+                             spelled out so the person can judge the file before it lands, and
+                             Cancel sits beside it, in thumb reach, with no confirmation: a
+                             mistaken cancel costs only a resend. A transfer of unknown size spins
+                             instead of sitting at zero. -->
+                        <Border VerticalOptions="End"
+                                Margin="0,8,0,0"
+                                AutomationId="ChatReceiveStrip"
+                                IsVisible="{Binding IsReceiving}"
+                                BackgroundColor="{toolkit:AppThemeResource ChatBubble}"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 12"
+                                Padding="{StaticResource SpacingSM}">
+                            <Grid ColumnDefinitions="*, Auto"
+                                  RowDefinitions="Auto, Auto"
+                                  ColumnSpacing="{StaticResource SpacingLG}"
+                                  RowSpacing="{StaticResource SpacingXS}">
+                                <Label AutomationId="ChatReceiveCaption"
+                                       Text="{Binding ReceiveCaption}"
+                                       Style="{StaticResource CardSubtitle}"/>
+                                <ProgressBar Grid.Row="1"
+                                             Progress="{Binding ReceiveProgress}"
+                                             IsVisible="{Binding IsReceiveSizeKnown}"/>
+                                <ActivityIndicator Grid.Row="1"
+                                                   IsRunning="True"
+                                                   HeightRequest="24"
+                                                   WidthRequest="24"
+                                                   HorizontalOptions="Start"
+                                                   IsVisible="{Binding IsReceiveSizeKnown, Converter={StaticResource invertedBoolConverter}}"/>
+                                <Button Grid.Column="1"
+                                        Grid.RowSpan="2"
+                                        Text="Cancel"
+                                        AutomationId="ChatReceiveCancelButton"
+                                        SemanticProperties.Description="Cancel the incoming file"
+                                        Command="{Binding CancelReceiveCommand}"
+                                        HeightRequest="44"
+                                        MinimumWidthRequest="64"
+                                        VerticalOptions="Center"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{toolkit:AppThemeResource AccentConnectionsText}"
+                                        FontAttributes="Bold"
+                                        FontSize="{StaticResource FontSizeSM}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Sending is gated on somebody having compared the authentication code.
+                             The plugin does not impose that; this sample does, and puts the code
+                             where the send button is so the comparison happens at the moment it
+                             matters, rather than on another screen. -->
+                        <Border Grid.Row="1"
+                                Margin="0,24"
+                                AutomationId="ChatVerificationCard"
+                                IsVisible="{Binding IsConfirmed, Converter={StaticResource invertedBoolConverter}}"
+                                Style="{StaticResource FeatureNavigationCardBorderStyle}">
+                            <VerticalStackLayout Spacing="{StaticResource SpacingLG}">
+                                <Label Style="{StaticResource CardSubtitle}"
+                                       FontSize="{StaticResource FontSizeSM}"
+                                       HorizontalTextAlignment="Center"
+                                       Text="Read this code to the other person. Both screens must show the same six digits."/>
+                                <Label AutomationId="ChatAuthenticationCode"
+                                       Text="{Binding AuthenticationCode}"
+                                       FontSize="32"
+                                       FontAttributes="Bold"
+                                       CharacterSpacing="8"
+                                       HorizontalTextAlignment="Center"
+                                       TextColor="{toolkit:AppThemeResource TextPrimary}"/>
+                                <Button Text="It matches"
+                                        AutomationId="ChatConfirmButton"
+                                        Command="{Binding ConfirmCommand}"
+                                        HeightRequest="44"
+                                        BackgroundColor="{StaticResource AccentDiscovery}"
+                                        TextColor="White"
+                                        FontAttributes="Bold"
+                                        CornerRadius="12"
+                                        FontSize="{StaticResource FontSizeSM}"/>
+                                <!-- Outlined, not filled: one filled answer, so the eye lands on the
+                                     match. Still a full-size button, because saying no is the
+                                     answer that protects the person. -->
+                                <Button Text="It doesn't match"
+                                        AutomationId="ChatRejectButton"
+                                        Command="{Binding RejectCommand}"
+                                        Style="{StaticResource DestructiveOutlineButtonStyle}"/>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <VerticalStackLayout Grid.Row="2"
+                                             Margin="0,8,0,0"
+                                             Spacing="{StaticResource SpacingSM}"
+                                             IsVisible="{Binding IsConfirmed}">
+                            <!-- The picked photo or video shows here until it is sent or removed, so
+                                 what Send will send is on screen rather than implied by the entry. -->
+                            <Border AutomationId="ChatAttachmentStrip"
+                                    IsVisible="{Binding HasMediaAttachment}"
+                                    BackgroundColor="{toolkit:AppThemeResource ChatBubble}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 12"
+                                    Padding="{StaticResource SpacingSM}">
+                                <Grid ColumnDefinitions="Auto, *, Auto"
+                                      ColumnSpacing="{StaticResource SpacingLG}">
+                                    <Border WidthRequest="56"
+                                            HeightRequest="56"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 8">
+                                        <Grid>
+                                            <Image AutomationId="ChatAttachmentThumbnail"
+                                                   Source="{Binding MediaAttachment.Thumbnail}"
+                                                   Aspect="AspectFill"/>
+                                            <!-- The bubble's play mark, smaller, so a video reads as
+                                                 one even when its first frame is dark. -->
+                                            <Border WidthRequest="28"
+                                                    HeightRequest="28"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="Ellipse"
+                                                    BackgroundColor="#99000000"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    IsVisible="False">
+                                                <Border.Triggers>
+                                                    <DataTrigger TargetType="Border"
+                                                                 Binding="{Binding MediaAttachment.Type}"
+                                                                 Value="{x:Static AttachmentType.Video}">
+                                                        <Setter Property="IsVisible"
+                                                                Value="True"/>
+                                                    </DataTrigger>
+                                                </Border.Triggers>
+                                                <Label Text="▶"
+                                                       FontSize="12"
+                                                       TextColor="White"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center"
+                                                       Margin="2,0,0,0"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                    <Label Grid.Column="1"
+                                           Text="{Binding MediaAttachment.Type}"
+                                           VerticalOptions="Center"
+                                           Style="{StaticResource CardSubtitle}"/>
+                                    <Button Grid.Column="2"
+                                            Text="Remove"
+                                            AutomationId="ChatRemoveAttachmentButton"
+                                            SemanticProperties.Description="Remove the attachment"
+                                            Command="{Binding RemoveAttachmentCommand}"
+                                            HeightRequest="44"
+                                            MinimumWidthRequest="64"
+                                            VerticalOptions="Center"
+                                            BackgroundColor="Transparent"
+                                            TextColor="{toolkit:AppThemeResource AccentConnectionsText}"
+                                            FontAttributes="Bold"
+                                            FontSize="{StaticResource FontSizeSM}"/>
+                                </Grid>
+                            </Border>
+
+                            <Grid ColumnDefinitions="Auto, *, Auto"
+                                  ColumnSpacing="{StaticResource SpacingLG}">
+                                <ImageButton
+                                    AutomationId="ChatAttachButton"
+                                    SemanticProperties.Description="Attach a photo or video"
+                                    Command="{Binding AttachCommand}"
+                                    WidthRequest="44"
+                                    HeightRequest="44"
+                                    Padding="10">
+                                    <ImageButton.Source>
+                                        <FontImageSource
+                                            Size="{StaticResource SpacingXL}"
+                                            FontFamily="NearbyChatIcons"
+                                            Glyph="{StaticResource icon-attachment}"
+                                            Color="{toolkit:AppThemeResource TextQuaternary}"/>
+                                    </ImageButton.Source>
+                                </ImageButton>
+                                <!-- A rounded field in the bubble ground, matching the cards and the
+                                     send button; MauiProgram removes the platform's own underline. -->
+                                <Border Grid.Column="1"
+                                        HeightRequest="44"
+                                        Padding="16,0"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 22"
+                                        BackgroundColor="{toolkit:AppThemeResource ChatBubble}">
+                                    <Entry AutomationId="ChatMessageEntry"
+                                           HeightRequest="44"
+                                           VerticalOptions="Center"
+                                           Placeholder="Type a message..."
+                                           PlaceholderColor="{toolkit:AppThemeResource TextTertiary}"
+                                           Text="{Binding Message}"
+                                           TextColor="{toolkit:AppThemeResource TextPrimary}"/>
+                                </Border>
+                                <!-- A filled square the height of the entry: the one primary action on
+                                     the row, in the connections accent. Dimmed rather than hidden while
+                                     there is nothing to send, so the row keeps its shape. -->
+                                <ImageButton
+                                    Grid.Column="2"
+                                    AutomationId="ChatSendButton"
+                                    SemanticProperties.Description="Send"
+                                    Command="{Binding SendCommand}"
+                                    WidthRequest="44"
+                                    HeightRequest="44"
+                                    Padding="12"
+                                    CornerRadius="10"
+                                    BackgroundColor="{StaticResource AccentConnections}">
+                                    <ImageButton.Source>
+                                        <FontImageSource
+                                            Size="20"
+                                            FontFamily="NearbyChatIcons"
+                                            Glyph="{StaticResource icon-send}"
+                                            Color="White"/>
+                                    </ImageButton.Source>
+                                    <ImageButton.Triggers>
+                                        <Trigger TargetType="ImageButton"
+                                                 Property="IsEnabled"
+                                                 Value="False">
+                                            <Setter Property="Opacity"
+                                                    Value="0.4"/>
+                                        </Trigger>
+                                    </ImageButton.Triggers>
+                                </ImageButton>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Grid>
+                </DataTemplate>
+            </BottomSheetContent.ContentTemplate>
+        </BottomSheetContent>
+    </BottomSheet.Content>
+
+</BottomSheet>

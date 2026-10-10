@@ -1,0 +1,42 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "..",
+          "files": ["src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj"]
+        }
+      ],
+      "dest": "api",
+      "properties": {
+        "TargetFrameworks": "net10.0"
+      },
+      "namespaceLayout": "flattened",
+      "memberLayout": "samePage"
+    }
+  ],
+  "build": {
+    "content": [
+      { "files": ["index.md", "toc.yml"] },
+      { "files": ["api/**.yml", "api/index.md"] },
+      { "files": ["*.md"], "exclude": ["index.md"], "dest": "docs" }
+    ],
+    "resource": [
+      { "files": ["public/**"] }
+    ],
+    "output": "_site",
+    "template": ["default", "modern"],
+    "globalMetadata": {
+      "_appName": "Plugin.Maui.NearbyConnectivity",
+      "_appTitle": "Plugin.Maui.NearbyConnectivity",
+      "_appLogoPath": "public/logo.png",
+      "_appFaviconPath": "public/logo.png",
+      "_appFooter": "<a href=\"https://github.com/phunkeler/Plugin.Maui.NearbyConnectivity\">GitHub</a> · <a href=\"https://www.nuget.org/packages/Plugin.Maui.NearbyConnectivity\">NuGet</a> · MIT",
+      "_enableSearch": true,
+      "_disableContribution": true,
+      "pdf": false
+    },
+    "postProcessors": ["ExtractSearchIndex"]
+  }
+}

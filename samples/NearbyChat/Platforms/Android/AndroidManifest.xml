@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:usesCleartextTraffic="false"></application>
+
+  <!-- Nearby Connections permissions are supplied by the Plugin.Maui.NearbyConnectivity package and
+       merge in automatically. They are NOT repeated here.
+
+       This app does not derive physical location from Bluetooth or Wi-Fi scan results, so it adds
+       neverForLocation to the two scan permissions. The manifest merger applies these attributes
+       over the plugin's plain declarations. Apps that DO use scan results for location should omit
+       this block. -->
+  <uses-permission
+    android:name="android.permission.BLUETOOTH_SCAN"
+    android:usesPermissionFlags="neverForLocation" />
+  <uses-permission
+    android:name="android.permission.NEARBY_WIFI_DEVICES"
+    android:usesPermissionFlags="neverForLocation" />
+
+  <!-- The ongoing notification while a device is connected: a connectedDevice foreground service,
+       and the permission to show its notification on Android 13 and later. -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+  <!-- The app's own concern: reading media the user picks to send. -->
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+  <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+  <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+</manifest>

@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<BasePage
+    x:Class="NearbyChat.Pages.ConnectionsPage"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    x:Name="this"
+    x:TypeArguments="ConnectionsPageViewModel"
+    Background="{toolkit:AppThemeResource BackgroundGradient}"
+    x:DataType="ConnectionsPageViewModel">
+
+    <BasePage.Content>
+        <Grid RowDefinitions="Auto,*"
+              RowSpacing="{StaticResource SpacingXL}"
+              Padding="0,24">
+            <Button Style="{StaticResource BackButtonStyle}"
+                    AutomationId="BackButton"
+                    Margin="24,0"
+                    Command="{Binding BackCommand}"
+                    HorizontalOptions="Start"
+                    VerticalOptions="Start"/>
+
+            <CollectionView
+                Margin="0,-18,0,0"
+                Grid.Row="1"
+                ItemsSource="{Binding ConnectedDevices}"
+                VerticalScrollBarVisibility="Never"
+                HorizontalScrollBarVisibility="Never">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="ConnectedDeviceViewModel">
+                        <!-- Room for the card's shadow inside the cell, which clips it: 10 above and 22
+                             below, the reach of a 16-radius shadow dropped 6. Less than that cuts the
+                             shadow in a flat line, which shows on the light theme. -->
+                        <Grid Padding="24,10,24,22">
+                            <ExpiringCard Style="{StaticResource FeatureNavigationCardBorderStyle}">
+                                <VerticalStackLayout Spacing="{StaticResource SpacingLG}">
+                                    <Grid ColumnDefinitions="Auto, *"
+                                          ColumnSpacing="{StaticResource SpacingLG}">
+                                        <DeviceAvatar AutomationId="{Binding Id, StringFormat='Avatar_{0}'}"
+                                                    AvatarSize="56"
+                                                    Presence="{Binding Presence}"
+                                                    VerticalOptions="Center"/>
+                                        <!-- The pill spans both rows, top-aligned, so its 44 dp tap area
+                                             never grows the name row and the subtitle can run under it. -->
+                                        <Grid Grid.Column="1"
+                                              ColumnDefinitions="*, Auto"
+                                              RowDefinitions="Auto, Auto"
+                                              ColumnSpacing="{StaticResource SpacingLG}"
+                                              RowSpacing="{StaticResource SpacingXS}"
+                                              VerticalOptions="Center">
+                                            <Label HorizontalOptions="Start"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1"
+                                                   Style="{StaticResource CardTitle}"
+                                                   Text="{Binding DisplayName}"/>
+                                            <!-- The connection's own state lives here and on the Disconnect
+                                                 button; the pill beside the name only ever says whether the
+                                                 codes were compared. -->
+                                            <Label Grid.Row="1"
+                                                   Grid.ColumnSpan="2"
+                                                   AutomationId="{Binding Id, StringFormat='Duration_{0}'}"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1"
+                                                   Style="{StaticResource CardSubtitle}"
+                                                   Text="{Binding ConnectedFor}">
+                                                <Label.Triggers>
+                                                    <DataTrigger TargetType="Label"
+                                                                 Binding="{Binding State}"
+                                                                 Value="{x:Static DeviceRowState.Disconnecting}">
+                                                        <Setter Property="Text"
+                                                                Value="Disconnecting..."/>
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Label"
+                                                                 Binding="{Binding State}"
+                                                                 Value="{x:Static DeviceRowState.Disconnected}">
+                                                        <Setter Property="Text"
+                                                                Value="Connection ended"/>
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
+                                            <!-- Unverified until somebody compares the authentication code in
+                                             the chat sheet. -->
+                                            <Grid Grid.Column="1"
+                                                  Grid.RowSpan="2"
+                                                  AutomationId="{Binding Id, StringFormat='StatusPill_{0}'}"
+                                                  BackgroundColor="Transparent"
+                                                  IsEnabled="{Binding CanDisconnect}"
+                                                  MinimumHeightRequest="44"
+                                                  VerticalOptions="Start">
+                                                <!-- Dims with the buttons once the connection is going or
+                                                     gone: nothing is left to verify. -->
+                                                <Grid.Triggers>
+                                                    <Trigger TargetType="Grid"
+                                                             Property="IsEnabled"
+                                                             Value="False">
+                                                        <Setter Property="Opacity"
+                                                                Value="0.5"/>
+                                                    </Trigger>
+                                                </Grid.Triggers>
+                                                <Grid.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding ChatCommand}"/>
+                                                </Grid.GestureRecognizers>
+                                                <Border Style="{StaticResource DeviceRowStatusPillBorderStyle}"
+                                                        VerticalOptions="Start"
+                                                        Background="{StaticResource StatusWarningSurface}">
+                                                    <Border.Triggers>
+                                                        <DataTrigger TargetType="Border"
+                                                                     Binding="{Binding IsConfirmed}"
+                                                                     Value="True">
+                                                            <Setter Property="Background"
+                                                                    Value="{StaticResource StatusSuccessSurface}"/>
+                                                        </DataTrigger>
+                                                    </Border.Triggers>
+                                                    <HorizontalStackLayout Spacing="{StaticResource SpacingXS}"
+                                                                           VerticalOptions="Center">
+                                                        <Image WidthRequest="12"
+                                                               HeightRequest="12"
+                                                               VerticalOptions="Center"
+                                                               IsVisible="{Binding IsConfirmed}">
+                                                            <Image.Source>
+                                                                <FontImageSource FontFamily="NearbyChatIcons"
+                                                                                 Glyph="{StaticResource icon-check}"
+                                                                                 Color="{toolkit:AppThemeResource StatusSuccessText}"/>
+                                                            </Image.Source>
+                                                        </Image>
+                                                        <Label Style="{StaticResource DeviceRowStatusPillLabelStyle}"
+                                                               AutomationId="{Binding Id, StringFormat='Status_{0}'}"
+                                                               Text="Unverified"
+                                                               TextColor="{toolkit:AppThemeResource StatusWarning}">
+                                                            <Label.Triggers>
+                                                                <DataTrigger TargetType="Label"
+                                                                             Binding="{Binding IsConfirmed}"
+                                                                             Value="True">
+                                                                    <Setter Property="Text"
+                                                                            Value="Verified"/>
+                                                                    <Setter Property="TextColor"
+                                                                            Value="{toolkit:AppThemeResource StatusSuccessText}"/>
+                                                                </DataTrigger>
+                                                            </Label.Triggers>
+                                                        </Label>
+                                                    </HorizontalStackLayout>
+                                                </Border>
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+                                    <!-- Pulled 8 into the card's 16 spacing on each side, so the chip row
+                                         sits 8 from the name above and the buttons below. The spacing
+                                         itself stays 16 for a card with no chip row. -->
+                                    <VerticalStackLayout Spacing="{StaticResource SpacingSM}"
+                                                         Margin="0,-8"
+                                                         IsVisible="{Binding ShowStats}">
+                                        <Grid ColumnDefinitions="*, Auto"
+                                              ColumnSpacing="{StaticResource SpacingSM}">
+                                            <Grid ColumnDefinitions="Auto, *">
+                                                <!-- The message glyph with a count badge: the only sign a
+                                                     message is waiting, and tapping it opens the code
+                                                     comparison that releases the message. A badge and not
+                                                     a sentence, so it shares the row with the data chip at
+                                                     any text size and the card keeps its height; and not a
+                                                     bare count, which the message chip uses for delivered
+                                                     messages. The right margin is the row gap, kept on the
+                                                     chip so nothing shifts when the chip is hidden. -->
+                                                <Border IsVisible="{Binding HasHeld}"
+                                                        Margin="0,0,8,0"
+                                                        Background="{StaticResource StatusWarningSurface}"
+                                                        SemanticProperties.Description="{Binding HeldCount, StringFormat='{0} waiting for verification. Verify'}"
+                                                        Style="{StaticResource StatChipBorderStyle}">
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding ChatCommand}"/>
+                                                    </Border.GestureRecognizers>
+                                                    <HorizontalStackLayout Spacing="6"
+                                                                           VerticalOptions="Center">
+                                                        <Grid VerticalOptions="Center">
+                                                            <Image Style="{StaticResource StatChipIconStyle}"
+                                                                   Margin="0,9,13,0">
+                                                                <Image.Source>
+                                                                    <FontImageSource FontFamily="NearbyChatIcons"
+                                                                                     Glyph="{StaticResource icon-message}"
+                                                                                     Color="{toolkit:AppThemeResource StatusWarning}"/>
+                                                                </Image.Source>
+                                                            </Image>
+                                                            <Border HorizontalOptions="End"
+                                                                    VerticalOptions="Start"
+                                                                    MinimumWidthRequest="18"
+                                                                    HeightRequest="18"
+                                                                    Padding="5,0"
+                                                                    StrokeThickness="0"
+                                                                    StrokeShape="RoundRectangle 9"
+                                                                    BackgroundColor="{toolkit:AppThemeResource StatusWarning}">
+                                                                <Label AutomationId="{Binding Id, StringFormat='Held_{0}'}"
+                                                                       FontAttributes="Bold"
+                                                                       FontSize="12"
+                                                                       HorizontalTextAlignment="Center"
+                                                                       VerticalTextAlignment="Center"
+                                                                       Text="{Binding HeldCount}"
+                                                                       TextColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Slate900}}"/>
+                                                            </Border>
+                                                        </Grid>
+                                                        <Image Style="{StaticResource StatChipIconStyle}"
+                                                               WidthRequest="8"
+                                                               HeightRequest="11">
+                                                            <Image.Source>
+                                                                <FontImageSource FontFamily="NearbyChatIcons"
+                                                                                 Glyph="{StaticResource icon-right}"
+                                                                                 Color="{toolkit:AppThemeResource StatusWarning}"/>
+                                                            </Image.Source>
+                                                        </Image>
+                                                    </HorizontalStackLayout>
+                                                </Border>
+                                                <Label Grid.Column="1"
+                                                       AutomationId="{Binding Id, StringFormat='Transferring_{0}'}"
+                                                       IsVisible="{Binding IsTransferring}"
+                                                       LineBreakMode="TailTruncation"
+                                                       MaxLines="1"
+                                                       Style="{StaticResource CardSubtitle}"
+                                                       Text="{Binding TransferCaption}"
+                                                       VerticalOptions="Center"/>
+                                            <!-- Both counts show once anything has been exchanged, zero
+                                                 included, so the row keeps one shape. -->
+                                            <HorizontalStackLayout Grid.Column="1"
+                                                                   IsVisible="{Binding ShowChips}"
+                                                                   Spacing="{StaticResource SpacingSM}">
+                                                <Border SemanticProperties.Description="{Binding MessageCount, StringFormat='{0} messages'}"
+                                                        Style="{StaticResource StatChipBorderStyle}">
+                                                    <HorizontalStackLayout Spacing="6"
+                                                                           VerticalOptions="Center">
+                                                        <Image Style="{StaticResource StatChipIconStyle}">
+                                                            <Image.Source>
+                                                                <FontImageSource FontFamily="NearbyChatIcons"
+                                                                                 Glyph="{StaticResource icon-message}"
+                                                                                 Color="{toolkit:AppThemeResource TextSecondary}"/>
+                                                            </Image.Source>
+                                                        </Image>
+                                                        <Label AutomationId="{Binding Id, StringFormat='Messages_{0}'}"
+                                                               Style="{StaticResource StatChipLabelStyle}"
+                                                               Text="{Binding MessageCount}"/>
+                                                    </HorizontalStackLayout>
+                                                </Border>
+                                                <Border SemanticProperties.Description="{Binding FileCount, StringFormat='{0} files'}"
+                                                        Style="{StaticResource StatChipBorderStyle}">
+                                                    <HorizontalStackLayout Spacing="6"
+                                                                           VerticalOptions="Center">
+                                                        <Image Style="{StaticResource StatChipIconStyle}">
+                                                            <Image.Source>
+                                                                <FontImageSource FontFamily="NearbyChatIcons"
+                                                                                 Glyph="{StaticResource icon-attachment}"
+                                                                                 Color="{toolkit:AppThemeResource TextSecondary}"/>
+                                                            </Image.Source>
+                                                        </Image>
+                                                        <Label AutomationId="{Binding Id, StringFormat='Files_{0}'}"
+                                                               Style="{StaticResource StatChipLabelStyle}"
+                                                               Text="{Binding FileCount}"/>
+                                                    </HorizontalStackLayout>
+                                                </Border>
+                                            </HorizontalStackLayout>
+                                            </Grid>
+                                            <Border Grid.Column="1"
+                                                    IsVisible="{Binding HasData}"
+                                                    SemanticProperties.Description="{Binding TotalCaption, StringFormat='{0} shared. Show details'}"
+                                                    Style="{StaticResource StatChipBorderStyle}">
+                                                <Border.Triggers>
+                                                    <DataTrigger TargetType="Border"
+                                                                 Binding="{Binding IsDataShown}"
+                                                                 Value="True">
+                                                        <Setter Property="Stroke"
+                                                                Value="{toolkit:AppThemeResource ChipRing}"/>
+                                                        <Setter Property="StrokeThickness"
+                                                                Value="2"/>
+                                                    </DataTrigger>
+                                                </Border.Triggers>
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding ShowDataCommand}"/>
+                                                </Border.GestureRecognizers>
+                                                <HorizontalStackLayout Spacing="6"
+                                                                       VerticalOptions="Center">
+                                                    <Image Style="{StaticResource StatChipIconStyle}"
+                                                           WidthRequest="8"
+                                                           HeightRequest="10">
+                                                        <Image.Source>
+                                                            <FontImageSource FontFamily="NearbyChatIcons"
+                                                                             Glyph="{StaticResource icon-up}"
+                                                                             Color="{toolkit:AppThemeResource TextSecondary}"/>
+                                                        </Image.Source>
+                                                    </Image>
+                                                    <Image Style="{StaticResource StatChipIconStyle}"
+                                                           WidthRequest="8"
+                                                           HeightRequest="10"
+                                                           Margin="-6,0,0,0">
+                                                        <Image.Source>
+                                                            <FontImageSource FontFamily="NearbyChatIcons"
+                                                                             Glyph="{StaticResource icon-down}"
+                                                                             Color="{toolkit:AppThemeResource TextSecondary}"/>
+                                                        </Image.Source>
+                                                    </Image>
+                                                    <Label AutomationId="{Binding Id, StringFormat='Data_{0}'}"
+                                                           Style="{StaticResource StatChipLabelStyle}"
+                                                           Text="{Binding TotalCaption}"/>
+                                                    <Image Style="{StaticResource StatChipIconStyle}"
+                                                           WidthRequest="8"
+                                                           HeightRequest="11">
+                                                        <Image.Source>
+                                                            <FontImageSource FontFamily="NearbyChatIcons"
+                                                                             Glyph="{StaticResource icon-right}"
+                                                                             Color="{toolkit:AppThemeResource TextSecondary}"/>
+                                                        </Image.Source>
+                                                    </Image>
+                                                </HorizontalStackLayout>
+                                            </Border>
+                                        </Grid>
+                                        <ProgressBar AutomationId="{Binding Id, StringFormat='Transfer_{0}'}"
+                                                     IsVisible="{Binding HasTransferFraction}"
+                                                     Progress="{Binding TransferFraction}"
+                                                     ProgressColor="{StaticResource AccentConnections}"/>
+                                    </VerticalStackLayout>
+                                    <Grid ColumnDefinitions="*, *"
+                                          ColumnSpacing="{StaticResource SpacingLG}">
+                                        <!-- Outlined beside the filled Chat, so the two do not compete. -->
+                                        <Button Text="Disconnect"
+                                                AutomationId="{Binding Id, StringFormat='Disconnect_{0}'}"
+                                                Command="{Binding DisconnectCommand}"
+                                                Style="{StaticResource DestructiveOutlineButtonStyle}">
+                                            <Button.Triggers>
+                                                <DataTrigger TargetType="Button"
+                                                             Binding="{Binding State}"
+                                                             Value="{x:Static DeviceRowState.Disconnecting}">
+                                                    <Setter Property="Text"
+                                                            Value="Disconnecting"/>
+                                                    <Setter Property="Opacity"
+                                                            Value="0.5"/>
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Button"
+                                                             Binding="{Binding State}"
+                                                             Value="{x:Static DeviceRowState.Disconnected}">
+                                                    <Setter Property="Text"
+                                                            Value="Disconnected"/>
+                                                    <Setter Property="Opacity"
+                                                            Value="0.5"/>
+                                                </DataTrigger>
+                                            </Button.Triggers>
+                                        </Button>
+                                        <Button Text="Chat"
+                                                Grid.Column="1"
+                                                HeightRequest="44"
+                                                AutomationId="{Binding Id, StringFormat='Chat_{0}'}"
+                                                Command="{Binding ChatCommand}"
+                                                IsEnabled="{Binding CanDisconnect}"
+                                                BackgroundColor="{StaticResource AccentDiscovery}"
+                                                TextColor="White"
+                                                FontAttributes="Bold"
+                                                CornerRadius="12"
+                                                FontSize="{StaticResource FontSizeSM}">
+                                            <Button.Triggers>
+                                                <DataTrigger TargetType="Button"
+                                                             Binding="{Binding IsDisconnecting}"
+                                                             Value="True">
+                                                    <Setter Property="Opacity"
+                                                            Value="0.5"/>
+                                                </DataTrigger>
+                                            </Button.Triggers>
+                                        </Button>
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </ExpiringCard>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="{StaticResource SpacingLG}">
+                        <Image
+                            x:Name="MessageIcon"
+                            WidthRequest="56"
+                            HeightRequest="56">
+                            <Image.Source>
+                                <FontImageSource x:Name="MessageIconSource"
+                                                 FontFamily="NearbyChatIcons"
+                                                 Glyph="{StaticResource icon-message}"
+                                                 Color="{StaticResource AccentConnections}"/>
+                            </Image.Source>
+                        </Image>
+                        <Label
+                            TextColor="{toolkit:AppThemeResource TextPrimary}"
+                            Text="Active Connections"
+                            FontSize="{StaticResource FontSizeMD}"
+                            HorizontalTextAlignment="Center">
+                        </Label>
+                        <Label
+                            TextColor="{toolkit:AppThemeResource TextSecondary}"
+                            Text="No active connections yet"
+                            HorizontalTextAlignment="Center">
+                        </Label>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+            </CollectionView>
+        </Grid>
+    </BasePage.Content>
+</BasePage>

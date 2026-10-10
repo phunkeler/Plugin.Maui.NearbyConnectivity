@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(pwsh scripts/Invoke-Tests.ps1 *)",
+      "Bash(pwsh scripts/device-tests.ps1 *)",
+      "Bash(dotnet tool restore *)",
+      "Bash(dotnet workload restore *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet docfx *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "maui-devflow"
+  ]
+}

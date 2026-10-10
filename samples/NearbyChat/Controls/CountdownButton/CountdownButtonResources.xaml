@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    CountdownButton default Style and ControlTemplate.
+
+    Appearance is ordinary bindable properties set from this Style, so AppThemeResource tracks
+    light/dark on its own and an app restyles the button the way it restyles any MAUI control.
+    The ring and fill are painted by the drawable; the disabled dim is the root's Opacity, set by the button.
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:controls="clr-namespace:NearbyChat.Controls"
+    x:Class="NearbyChat.Controls.CountdownButtonResources">
+
+    <!-- ApplyToDerivedTypes so subclasses (OfferWindowButton) inherit the template: an implicit
+         style matches the exact type only, and a CountdownButton with no template renders nothing. -->
+    <Style x:Key="CountdownButtonBaseStyle"
+           TargetType="controls:CountdownButton"
+           ApplyToDerivedTypes="True">
+        <Setter Property="MinimumHeightRequest"
+                Value="48"/>
+        <Setter Property="FillColor"
+                Value="{StaticResource AccentConnections}"/>
+        <Setter Property="RingColor"
+                Value="{toolkit:AppThemeResource CountdownRing}"/>
+        <!-- yellow-600 on light; yellow-400 on dark, the same step the warning pair takes. -->
+        <Setter Property="CautionRingColor"
+                Value="{toolkit:AppThemeResource StatusWarning}"/>
+        <Setter Property="WarningRingColor"
+                Value="{toolkit:AppThemeResource StatusError}"/>
+        <Setter Property="RingThickness"
+                Value="3"/>
+        <Setter Property="TextColor"
+                Value="{StaticResource White}"/>
+        <Setter Property="ExpiredTextColor"
+                Value="{toolkit:AppThemeResource StatusExpiredText}"/>
+        <!-- No outline once expired: the caption becomes a status line in the row, and an outlined
+             shape read as a button that did nothing when tapped. -->
+        <Setter Property="ExpiredStrokeColor"
+                Value="Transparent"/>
+        <Setter Property="ControlTemplate">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Grid x:Name="PART_Root"
+                          InputTransparent="True"
+                          CascadeInputTransparent="True">
+                        <GraphicsView x:Name="PART_Canvas"/>
+                        <!-- No TextColor binding here: the button writes PART_Label.TextColor so the
+                             caption can take the ring's red in the warning band. TextColor is the
+                             value it uses in every other state. -->
+                        <Label x:Name="PART_Label"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               FontAttributes="{TemplateBinding FontAttributes}"
+                               FontSize="{TemplateBinding FontSize}"/>
+
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The implicit style: keyed styles are never applied automatically, so this empty alias is
+         what actually reaches an unstyled button. -->
+    <Style TargetType="controls:CountdownButton"
+           ApplyToDerivedTypes="True"
+           BasedOn="{StaticResource CountdownButtonBaseStyle}"/>
+
+    <!-- For a window the user cannot act on. The discovery side is waiting on the other device to
+         answer, so escalating the ring through gold to red and then flashing it states an urgency
+         that belongs to nobody: there is nothing on this end to hurry. The ring still drains, which
+         is the part that carries information. BasedOn the default so the template and every other
+         value come with it; the three ring colors collapse to one so no band change is visible, and
+         a zero period opts the pulse out. Holding RingColor also keeps the caption off the warning
+         red, which the button otherwise takes from WarningRingColor. -->
+    <Style x:Key="UnescalatingOfferWindowButtonStyle"
+           TargetType="controls:CountdownButton"
+           BasedOn="{StaticResource CountdownButtonBaseStyle}"
+           ApplyToDerivedTypes="True">
+        <Setter Property="CautionRingColor"
+                Value="{toolkit:AppThemeResource CountdownRing}"/>
+        <Setter Property="WarningRingColor"
+                Value="{toolkit:AppThemeResource CountdownRing}"/>
+        <Setter Property="WarningPulsePeriod"
+                Value="0"/>
+    </Style>
+
+</ResourceDictionary>

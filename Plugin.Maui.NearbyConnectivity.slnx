@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Minimal/Minimal.csproj" />
+    <Project Path="samples/NearbyChat/NearbyChat.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Plugin.Maui.NearbyConnectivity.UnitTests/Plugin.Maui.NearbyConnectivity.UnitTests.csproj" />
+    <Project Path="test/Plugin.Maui.NearbyConnectivity.DeviceTests/Plugin.Maui.NearbyConnectivity.DeviceTests.csproj" />
+    <Project Path="test/Plugin.Maui.NearbyConnectivity.DeviceTests.Runner/Plugin.Maui.NearbyConnectivity.DeviceTests.Runner.csproj" />
+    <Project Path="test/Plugin.Maui.NearbyConnectivity.UiTests.Host/Plugin.Maui.NearbyConnectivity.UiTests.Host.csproj" />
+    <Project Path="test/Plugin.Maui.NearbyConnectivity.UiTests/Plugin.Maui.NearbyConnectivity.UiTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,27 @@
+<Project>
+  <Import Project="../Directory.Build.props" />
+  <PropertyGroup>
+    <!-- The shipped library takes every analyzer rule; tests and samples stay on latest-recommended. -->
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <Authors>phunkeler and contributors</Authors>
+    <Copyright>Copyright © 2026 phunkeler and contributors</Copyright>
+    <Description>Plugin.Maui.NearbyConnectivity provides the ability to discover, connect to, and exchange data with nearby devices that run your .NET MAUI application, without a server or an internet connection.</Description>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsPackable>true</IsPackable>
+    <IsTrimmable>true</IsTrimmable>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/phunkeler/Plugin.Maui.NearbyConnectivity</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>peer-to-peer;nearby-devices;nearby-connections;multipeer-connectivity;android;ios;dotnet-maui;maui;plugin;google-nearby;google-nearby-connections;wifi;bluetooth;bluetooth-ble;file-transfer;file-sharing</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/phunkeler/Plugin.Maui.NearbyConnectivity</RepositoryUrl>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Title>.NET MAUI Nearby Connectivity Plugin</Title>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>

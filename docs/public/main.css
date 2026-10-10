@@ -1,0 +1,9 @@
+/* Small override on the DocFX modern template. Bootstrap 5.3 CSS variables do the rest. */
+:root {
+  --bs-link-color-rgb: 13, 110, 253;
+  --bs-link-hover-color-rgb: 10, 88, 202;
+}
+article { max-width: 78ch; }
+article pre { font-size: 0.85em; }
+article table { font-size: 0.92em; }
+#logo { height: 32px; width: auto; margin-right: 0.5rem; }

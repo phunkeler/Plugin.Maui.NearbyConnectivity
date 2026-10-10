@@ -1,0 +1,633 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:controls="clr-namespace:NearbyChat.Controls"
+    xmlns:converters="clr-namespace:NearbyChat.Converters"
+    xmlns:vm="clr-namespace:NearbyChat.ViewModels"
+    x:Class="NearbyChat.Resources.Styles.MainStyle">
+
+    <!-- Converters -->
+    <converters:AvailabilityTextConverter x:Key="availabilityTextConverter"/>
+    <converters:LocalTimeConverter x:Key="localTimeConverter"/>
+    <converters:AvatarShapeConverter x:Key="avatarShapeConverter"/>
+    <converters:PaletteColorConverter x:Key="paletteColorConverter"/>
+
+    <toolkit:AppThemeObject x:Key="BackgroundGradient">
+        <toolkit:AppThemeObject.Light>
+            <LinearGradientBrush StartPoint="0,0"
+                                 EndPoint="1,1">
+                <GradientStop Color="{StaticResource Slate50}"
+                              Offset="0.0"/>
+                <GradientStop Color="{StaticResource Slate100}"
+                              Offset="0.5"/>
+                <GradientStop Color="{StaticResource Slate50}"
+                              Offset="1.0"/>
+            </LinearGradientBrush>
+        </toolkit:AppThemeObject.Light>
+        <toolkit:AppThemeObject.Dark>
+            <LinearGradientBrush StartPoint="0,0"
+                                 EndPoint="1,1">
+                <GradientStop Color="{StaticResource Slate800}"
+                              Offset="0.0"/>
+                <GradientStop Color="{StaticResource Slate900}"
+                              Offset="0.5"/>
+                <GradientStop Color="{StaticResource Slate800}"
+                              Offset="1.0"/>
+            </LinearGradientBrush>
+        </toolkit:AppThemeObject.Dark>
+    </toolkit:AppThemeObject>
+    <toolkit:IntToBoolConverter x:Key="intToBoolConverter"/>
+    <toolkit:InvertedBoolConverter x:Key="invertedBoolConverter"/>
+    <!-- Layout Spacing -->
+    <x:Double x:Key="SpacingXS">4</x:Double>
+    <x:Double x:Key="SpacingSM">8</x:Double>
+    <x:Double x:Key="SpacingLG">16</x:Double>
+    <x:Double x:Key="SpacingXL">24</x:Double>
+    <Thickness x:Key="SheetPadding">24,0,24,24</Thickness>
+    <Thickness x:Key="SheetTitleGap">0,0,0,16</Thickness>
+
+    <!-- Font sizes -->
+    <x:Double x:Key="FontSizeSM">14</x:Double>
+    <x:Double x:Key="FontSizeMD">16</x:Double>
+
+    <!-- ========================================== -->
+    <!--                   ICONS                    -->
+    <!-- ========================================== -->
+    <x:String x:Key="icon-antenna">&#xe001;</x:String>
+    <x:String x:Key="icon-attachment">&#xe002;</x:String>
+    <x:String x:Key="icon-check">&#xe005;</x:String>
+    <x:String x:Key="icon-down">&#xe006;</x:String>
+    <x:String x:Key="icon-message">&#xe011;</x:String>
+    <x:String x:Key="icon-right">&#xe013;</x:String>
+    <x:String x:Key="icon-send">&#xe014;</x:String>
+    <x:String x:Key="icon-shuffle">&#xe019;</x:String>
+    <x:String x:Key="icon-sonar">&#xe015;</x:String>
+    <x:String x:Key="icon-up">&#xe016;</x:String>
+    <x:String x:Key="icon-users">&#xe017;</x:String>
+
+    <!-- ========================================== -->
+    <!--          FEATURE ICON BADGE PARTS          -->
+    <!-- ========================================== -->
+
+    <!-- Border styles (must be defined before FeatureIconBadge styles) -->
+    <Style x:Key="FeatureIconBadgeBorderBaseStyle"
+           TargetType="Border">
+        <Setter Property="WidthRequest"
+                Value="56"/>
+        <Setter Property="HeightRequest"
+                Value="56"/>
+        <Setter Property="StrokeShape"
+                Value="RoundRectangle 16"/>
+    </Style>
+
+    <Style x:Key="FeatureIconBadgeBorderAdvertiseStyle"
+           TargetType="Border"
+           BasedOn="{StaticResource FeatureIconBadgeBorderBaseStyle}">
+        <Setter Property="BackgroundColor"
+                Value="{StaticResource AccentAdvertising}"/>
+        <Setter Property="Shadow">
+            <Shadow Brush="{toolkit:AppThemeResource AccentAdvertisingShadow}"
+                    Offset="0,4"
+                    Radius="12"
+                    Opacity="0.3"/>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FeatureIconBadgeBorderDiscoverStyle"
+           TargetType="Border"
+           BasedOn="{StaticResource FeatureIconBadgeBorderBaseStyle}">
+        <Setter Property="BackgroundColor"
+                Value="{StaticResource AccentDiscovery}"/>
+        <Setter Property="Shadow">
+            <Shadow Brush="{toolkit:AppThemeResource AccentDiscoveryShadow}"
+                    Offset="0,4"
+                    Radius="12"
+                    Opacity="0.3"/>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FeatureIconBadgeBorderConnectionsStyle"
+           TargetType="Border"
+           BasedOn="{StaticResource FeatureIconBadgeBorderBaseStyle}">
+        <Setter Property="BackgroundColor"
+                Value="{StaticResource AccentConnections}"/>
+        <Setter Property="Shadow">
+            <Shadow Brush="{toolkit:AppThemeResource AccentConnectionsShadow}"
+                    Offset="0,4"
+                    Radius="12"
+                    Opacity="0.3"/>
+        </Setter>
+    </Style>
+
+    <!-- Image styles (must be defined before FeatureIconBadge styles) -->
+    <Style x:Key="FeatureIconBadgeImageBaseStyle"
+           TargetType="Image">
+        <Setter Property="WidthRequest"
+                Value="24"/>
+        <Setter Property="HeightRequest"
+                Value="24"/>
+    </Style>
+
+    <Style x:Key="FeatureIconBadgeImageAdvertiseStyle"
+           TargetType="Image"
+           BasedOn="{StaticResource FeatureIconBadgeImageBaseStyle}">
+        <Setter Property="Source">
+            <Setter.Value>
+                <FontImageSource FontFamily="NearbyChatIcons"
+                                 Glyph="{StaticResource icon-antenna}"
+                                 Color="{StaticResource White}"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FeatureIconBadgeImageDiscoverStyle"
+           TargetType="Image"
+           BasedOn="{StaticResource FeatureIconBadgeImageBaseStyle}">
+        <Setter Property="Source">
+            <Setter.Value>
+                <FontImageSource FontFamily="NearbyChatIcons"
+                                 Glyph="{StaticResource icon-sonar}"
+                                 Color="{StaticResource White}"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FeatureIconBadgeImageConnectionsStyle"
+           TargetType="Image"
+           BasedOn="{StaticResource FeatureIconBadgeImageBaseStyle}">
+        <Setter Property="Source">
+            <Setter.Value>
+                <FontImageSource FontFamily="NearbyChatIcons"
+                                 Glyph="{StaticResource icon-message}"
+                                 Color="{StaticResource White}"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ========================================== -->
+    <!--        FEATURE ICON BADGE CONTROLS         -->
+    <!-- ========================================== -->
+
+    <Style x:Key="FeatureIconBadgeStyle"
+           TargetType="controls:FeatureIconBadge">
+        <Setter Property="BorderStyle"
+                Value="{StaticResource FeatureIconBadgeBorderBaseStyle}"/>
+        <Setter Property="ImageStyle"
+                Value="{StaticResource FeatureIconBadgeImageBaseStyle}"/>
+    </Style>
+
+    <Style x:Key="FeatureIconBadgeAdvertiseStyle"
+           TargetType="controls:FeatureIconBadge"
+           BasedOn="{StaticResource FeatureIconBadgeStyle}">
+        <Setter Property="BorderStyle"
+                Value="{StaticResource FeatureIconBadgeBorderAdvertiseStyle}"/>
+        <Setter Property="ImageStyle"
+                Value="{StaticResource FeatureIconBadgeImageAdvertiseStyle}"/>
+    </Style>
+
+    <Style x:Key="FeatureIconBadgeDiscoverStyle"
+           TargetType="controls:FeatureIconBadge"
+           BasedOn="{StaticResource FeatureIconBadgeStyle}">
+        <Setter Property="BorderStyle"
+                Value="{StaticResource FeatureIconBadgeBorderDiscoverStyle}"/>
+        <Setter Property="ImageStyle"
+                Value="{StaticResource FeatureIconBadgeImageDiscoverStyle}"/>
+    </Style>
+
+    <Style x:Key="FeatureIconBadgeConnectionsStyle"
+           TargetType="controls:FeatureIconBadge"
+           BasedOn="{StaticResource FeatureIconBadgeStyle}">
+        <Setter Property="BorderStyle"
+                Value="{StaticResource FeatureIconBadgeBorderConnectionsStyle}"/>
+        <Setter Property="ImageStyle"
+                Value="{StaticResource FeatureIconBadgeImageConnectionsStyle}"/>
+    </Style>
+
+    <!-- ========================================== -->
+    <!--             DEVICE ROW BADGES              -->
+    <!-- ========================================== -->
+    <!-- The text pill on the trailing edge of a device row: a word for the row's state, tinted on
+         a low-alpha ground of the same hue. Set Background here and TextColor on the Label to
+         restate it in another status color; the neutral pair is the default. -->
+    <Style x:Key="DeviceRowStatusPillBorderStyle"
+           TargetType="Border">
+        <Setter Property="Stroke"
+                Value="Transparent"/>
+        <Setter Property="Padding"
+                Value="10,4"/>
+        <Setter Property="HorizontalOptions"
+                Value="End"/>
+        <Setter Property="VerticalOptions"
+                Value="Center"/>
+        <Setter Property="StrokeShape"
+                Value="RoundRectangle 8"/>
+        <Setter Property="Background"
+                Value="{StaticResource StatusNeutralSurface}"/>
+    </Style>
+
+    <!-- Regular weight, matching the Figma: the pill is a quiet state label beside the device
+         name, not a second heading competing with it. -->
+    <Style x:Key="DeviceRowStatusPillLabelStyle"
+           TargetType="Label">
+        <Setter Property="FontSize"
+                Value="{StaticResource FontSizeSM}"/>
+        <Setter Property="FontAttributes"
+                Value="None"/>
+        <Setter Property="VerticalOptions"
+                Value="Center"/>
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource TextTertiary}"/>
+    </Style>
+
+    <!-- ========================================== -->
+    <!--                TEXT STYLES                 -->
+    <!-- ========================================== -->
+    <Style x:Key="CardTitle"
+           TargetType="Label">
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource TextPrimary}"/>
+        <Setter Property="FontSize"
+                Value="16"/>
+        <Setter Property="FontAttributes"
+                Value="Bold"/>
+    </Style>
+
+    <Style x:Key="CardSubtitle"
+           TargetType="Label">
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource TextSecondary}"/>
+        <Setter Property="FontSize"
+                Value="12"/>
+    </Style>
+
+    <Style x:Key="StatChipBorderStyle"
+           TargetType="Border">
+        <Setter Property="Stroke"
+                Value="Transparent"/>
+        <Setter Property="StrokeShape"
+                Value="RoundRectangle 22"/>
+        <Setter Property="Background"
+                Value="{toolkit:AppThemeResource SurfaceSecondary}"/>
+        <Setter Property="Padding"
+                Value="14,0"/>
+        <Setter Property="MinimumHeightRequest"
+                Value="44"/>
+        <Setter Property="VerticalOptions"
+                Value="Center"/>
+    </Style>
+
+    <Style x:Key="StatChipLabelStyle"
+           TargetType="Label">
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource TextPrimary}"/>
+        <Setter Property="FontSize"
+                Value="{StaticResource FontSizeSM}"/>
+        <Setter Property="FontAttributes"
+                Value="Bold"/>
+        <Setter Property="VerticalOptions"
+                Value="Center"/>
+    </Style>
+
+    <Style x:Key="StatChipIconStyle"
+           TargetType="Image">
+        <Setter Property="WidthRequest"
+                Value="16"/>
+        <Setter Property="HeightRequest"
+                Value="16"/>
+        <Setter Property="VerticalOptions"
+                Value="Center"/>
+    </Style>
+
+    <Style x:Key="ListHeader"
+           TargetType="Label">
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource TextTertiary}"/>
+        <Setter Property="FontSize"
+                Value="16"/>
+    </Style>
+
+    <Style x:Key="FeatureNavigationCardBorderStyle"
+           TargetType="Border">
+        <Setter Property="BackgroundColor"
+                Value="{toolkit:AppThemeResource Surface}"/>
+        <Setter Property="Padding"
+                Value="24"/>
+        <Setter Property="StrokeThickness"
+                Value="0"/>
+        <Setter Property="StrokeShape"
+                Value="RoundRectangle 24"/>
+        <Setter Property="Shadow">
+            <Shadow Brush="{toolkit:AppThemeResource CardShadow}"
+                    Offset="0,6"
+                    Radius="16"
+                    Opacity="0.6"/>
+        </Setter>
+    </Style>
+
+    <Style x:Key="BackButtonStyle"
+           TargetType="Button">
+        <Setter Property="Text"
+                Value="Back"/>
+        <Setter Property="HeightRequest"
+                Value="44"/>
+        <Setter Property="BackgroundColor"
+                Value="Transparent"/>
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource TextPrimary}"/>
+        <Setter Property="FontAttributes"
+                Value="Bold"/>
+        <Setter Property="BorderWidth"
+                Value="1"/>
+        <Setter Property="BorderColor"
+                Value="{toolkit:AppThemeResource TextTertiary}"/>
+        <Setter Property="CornerRadius"
+                Value="12"/>
+        <Setter Property="FontSize"
+                Value="{StaticResource FontSizeMD}"/>
+    </Style>
+
+    <!-- Chat bubble parts (shared across Text/Photo/Video templates) -->
+    <Style x:Key="ChatBubbleBorder"
+           TargetType="Border">
+        <Setter Property="StrokeThickness"
+                Value="0"/>
+        <Setter Property="Margin"
+                Value="0,8,0,0"/>
+        <Setter Property="Padding"
+                Value="{StaticResource SpacingSM}"/>
+        <Setter Property="Background"
+                Value="{toolkit:AppThemeResource ChatBubble}"/>
+        <Setter Property="HorizontalOptions"
+                Value="Start"/>
+        <Setter Property="StrokeShape"
+                Value="RoundRectangle 16"/>
+        <Style.Triggers>
+            <!-- User messages: right aligned, accent background -->
+            <DataTrigger TargetType="Border"
+                         Binding="{Binding Model.Direction}"
+                         Value="Outgoing">
+                <Setter Property="HorizontalOptions"
+                        Value="End"/>
+                <Setter Property="Background"
+                        Value="{toolkit:AppThemeResource ChatBubbleOutgoing}"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="ChatTimestampLabel"
+           TargetType="Label">
+        <Setter Property="FontSize"
+                Value="12"/>
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource ChatBubbleTimestamp}"/>
+        <Setter Property="HorizontalTextAlignment"
+                Value="End"/>
+    </Style>
+
+    <!-- Failed-send state. Shown inside the bubble that failed, so the user can tell which
+         message did not arrive when several are in flight. -->
+    <Style x:Key="ChatFailureReasonLabel"
+           TargetType="Label">
+        <Setter Property="FontSize"
+                Value="12"/>
+        <Setter Property="FontAttributes"
+                Value="Bold"/>
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource StatusError}"/>
+        <Setter Property="LineBreakMode"
+                Value="WordWrap"/>
+    </Style>
+
+    <Style x:Key="ChatFailureRemedyLabel"
+           TargetType="Label">
+        <Setter Property="FontSize"
+                Value="12"/>
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource ChatBubbleMediaText}"/>
+        <Setter Property="LineBreakMode"
+                Value="WordWrap"/>
+    </Style>
+
+    <!-- The secondary answer beside a filled one: Disconnect beside Chat, the code mismatch under
+         the match. Outlined so the filled button ranks first, in the error hue so the outcome is
+         clear. StatusError is text-strength in both themes, so this never needs white on red. -->
+    <Style x:Key="DestructiveOutlineButtonStyle"
+           TargetType="Button">
+        <Setter Property="HeightRequest"
+                Value="44"/>
+        <Setter Property="BackgroundColor"
+                Value="Transparent"/>
+        <Setter Property="BorderColor"
+                Value="{toolkit:AppThemeResource StatusError}"/>
+        <Setter Property="BorderWidth"
+                Value="1"/>
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource StatusError}"/>
+        <Setter Property="FontAttributes"
+                Value="Bold"/>
+        <Setter Property="CornerRadius"
+                Value="12"/>
+        <Setter Property="FontSize"
+                Value="{StaticResource FontSizeSM}"/>
+    </Style>
+
+    <!-- The way forward out of a failed send, so not the error hue: that outline is for answers
+         that end something. Outlined in the bubble's own text colour; the reason line above it
+         carries the red. -->
+    <Style x:Key="ChatRetryButton"
+           TargetType="Button">
+        <Setter Property="Text"
+                Value="Retry"/>
+        <Setter Property="HeightRequest"
+                Value="44"/>
+        <Setter Property="BackgroundColor"
+                Value="Transparent"/>
+        <Setter Property="BorderColor"
+                Value="{toolkit:AppThemeResource ChatBubbleText}"/>
+        <Setter Property="BorderWidth"
+                Value="1"/>
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource ChatBubbleText}"/>
+        <Setter Property="FontAttributes"
+                Value="Bold"/>
+        <Setter Property="CornerRadius"
+                Value="12"/>
+        <Setter Property="FontSize"
+                Value="{StaticResource FontSizeSM}"/>
+        <Setter Property="Padding"
+                Value="16,0"/>
+        <Setter Property="MinimumWidthRequest"
+                Value="64"/>
+        <Setter Property="HorizontalOptions"
+                Value="End"/>
+    </Style>
+
+    <!-- A line the app adds to the conversation, such as a file that never arrived. Centred and
+         unboxed, so it does not read as a message from either side. -->
+    <Style x:Key="ChatNoticeLabel"
+           TargetType="Label">
+        <Setter Property="FontSize"
+                Value="12"/>
+        <Setter Property="TextColor"
+                Value="{toolkit:AppThemeResource TextTertiary}"/>
+        <Setter Property="HorizontalTextAlignment"
+                Value="Center"/>
+        <Setter Property="Margin"
+                Value="0,8,0,0"/>
+    </Style>
+
+    <!-- Data Templates -->
+    <controls:ChatMessageViewModelDataTemplateSelector x:Key="ChatMessageViewModelDataTemplateSelector">
+        <controls:ChatMessageViewModelDataTemplateSelector.TextTemplate>
+            <DataTemplate x:DataType="vm:ChatMessageViewModel">
+                <Border Style="{StaticResource ChatBubbleBorder}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label
+                            Text="{Binding Model.Text}"
+                            TextColor="{toolkit:AppThemeResource ChatBubbleText}"
+                            LineBreakMode="WordWrap"/>
+                        <VerticalStackLayout Spacing="4"
+                                             IsVisible="{Binding HasFailed}">
+                            <Label Style="{StaticResource ChatFailureReasonLabel}"
+                                   Text="{Binding FailureReason}"/>
+                            <Label Style="{StaticResource ChatFailureRemedyLabel}"
+                                   Text="{Binding FailureRemedy}"/>
+                            <Button Style="{StaticResource ChatRetryButton}"
+                                    AutomationId="ChatRetryButton"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChatViewModel}}, Path=RetryCommand}"
+                                    CommandParameter="{Binding .}"/>
+                        </VerticalStackLayout>
+                        <Label Style="{StaticResource ChatTimestampLabel}"
+                               IsVisible="{Binding ShowTimestamp}"
+                               Text="{Binding Model.Timestamp, Converter={StaticResource localTimeConverter}}"/>
+                    </VerticalStackLayout>
+                </Border>
+            </DataTemplate>
+        </controls:ChatMessageViewModelDataTemplateSelector.TextTemplate>
+        <controls:ChatMessageViewModelDataTemplateSelector.NoticeTemplate>
+            <DataTemplate x:DataType="vm:ChatMessageViewModel">
+                <Label Style="{StaticResource ChatNoticeLabel}"
+                       AutomationId="ChatNotice"
+                       Text="{Binding Model.Text}"/>
+            </DataTemplate>
+        </controls:ChatMessageViewModelDataTemplateSelector.NoticeTemplate>
+        <controls:ChatMessageViewModelDataTemplateSelector.PhotoTemplate>
+            <DataTemplate x:DataType="vm:PhotoMessageViewModel">
+                <Border Style="{StaticResource ChatBubbleBorder}">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChatViewModel}}, Path=OpenFileCommand}"
+                                              CommandParameter="{Binding .}"/>
+                    </Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="4">
+                        <!-- 160 dp, so a photo and the message sent with it both fit the list
+                             at the sheet's height cap. -->
+                        <Image Source="{Binding Thumbnail}"
+                               AutomationId="ChatPhotoImage"
+                               Aspect="AspectFit"
+                               WidthRequest="160"
+                               HeightRequest="160"/>
+                        <!-- Outbound transfer progress; visible only while the file is in flight -->
+                        <ProgressBar Progress="{Binding TransferProgress}"
+                                     IsVisible="{Binding IsTransferring}"/>
+                        <!-- The local open failure, not the send failure: no Retry button,
+                             because re-sending does not make the file openable. -->
+                        <Label Style="{StaticResource ChatFailureReasonLabel}"
+                               AutomationId="ChatOpenFailure"
+                               IsVisible="{Binding HasOpenFailed}"
+                               Text="{Binding OpenFailureReason}"/>
+                        <VerticalStackLayout Spacing="4"
+                                             IsVisible="{Binding HasFailed}">
+                            <Label Style="{StaticResource ChatFailureReasonLabel}"
+                                   Text="{Binding FailureReason}"/>
+                            <Label Style="{StaticResource ChatFailureRemedyLabel}"
+                                   Text="{Binding FailureRemedy}"/>
+                            <Button Style="{StaticResource ChatRetryButton}"
+                                    AutomationId="ChatRetryButton"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChatViewModel}}, Path=RetryCommand}"
+                                    CommandParameter="{Binding .}"/>
+                        </VerticalStackLayout>
+                        <Label Style="{StaticResource ChatTimestampLabel}"
+                               IsVisible="{Binding ShowTimestamp}"
+                               Text="{Binding Model.Timestamp, Converter={StaticResource localTimeConverter}}"/>
+                    </VerticalStackLayout>
+                </Border>
+            </DataTemplate>
+
+        </controls:ChatMessageViewModelDataTemplateSelector.PhotoTemplate>
+        <controls:ChatMessageViewModelDataTemplateSelector.VideoTemplate>
+            <DataTemplate x:DataType="vm:VideoMessageViewModel">
+                <Border Style="{StaticResource ChatBubbleBorder}">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChatViewModel}}, Path=OpenFileCommand}"
+                                              CommandParameter="{Binding .}"/>
+                    </Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="4">
+                        <Grid>
+                            <Image Source="{Binding Thumbnail}"
+                                   AutomationId="ChatVideoImage"
+                                   Aspect="AspectFit"
+                                   WidthRequest="160"
+                                   HeightRequest="160"/>
+                            <Border WidthRequest="52"
+                                    HeightRequest="52"
+                                    StrokeThickness="0"
+                                    StrokeShape="Ellipse"
+                                    BackgroundColor="#99000000"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center">
+                                <Border.Shadow>
+                                    <Shadow Brush="Black"
+                                            Offset="0,2"
+                                            Radius="8"
+                                            Opacity="0.4"/>
+                                </Border.Shadow>
+                                <Label Text="▶"
+                                       FontSize="22"
+                                       TextColor="White"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"
+                                       Margin="4,0,0,0"/>
+                            </Border>
+                        </Grid>
+                        <!-- Outbound transfer progress; visible only while the file is in flight -->
+                        <ProgressBar Progress="{Binding TransferProgress}"
+                                     IsVisible="{Binding IsTransferring}"/>
+                        <!-- The local open failure, not the send failure: no Retry button,
+                             because re-sending does not make the file openable. -->
+                        <Label Style="{StaticResource ChatFailureReasonLabel}"
+                               AutomationId="ChatOpenFailure"
+                               IsVisible="{Binding HasOpenFailed}"
+                               Text="{Binding OpenFailureReason}"/>
+                        <VerticalStackLayout Spacing="4"
+                                             IsVisible="{Binding HasFailed}">
+                            <Label Style="{StaticResource ChatFailureReasonLabel}"
+                                   Text="{Binding FailureReason}"/>
+                            <Label Style="{StaticResource ChatFailureRemedyLabel}"
+                                   Text="{Binding FailureRemedy}"/>
+                            <Button Style="{StaticResource ChatRetryButton}"
+                                    AutomationId="ChatRetryButton"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChatViewModel}}, Path=RetryCommand}"
+                                    CommandParameter="{Binding .}"/>
+                        </VerticalStackLayout>
+                        <!-- Length and size sit with the time, so a black first frame still says
+                             what arrived. -->
+                        <Grid ColumnDefinitions="*, Auto"
+                              ColumnSpacing="{StaticResource SpacingSM}">
+                            <Label Style="{StaticResource ChatTimestampLabel}"
+                                   AutomationId="ChatVideoDetails"
+                                   HorizontalTextAlignment="Start"
+                                   Text="{Binding DetailsCaption}"/>
+                            <Label Grid.Column="1"
+                                   Style="{StaticResource ChatTimestampLabel}"
+                                   IsVisible="{Binding ShowTimestamp}"
+                                   Text="{Binding Model.Timestamp, Converter={StaticResource localTimeConverter}}"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </DataTemplate>
+        </controls:ChatMessageViewModelDataTemplateSelector.VideoTemplate>
+    </controls:ChatMessageViewModelDataTemplateSelector>
+
+</ResourceDictionary>
