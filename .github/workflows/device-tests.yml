@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
-      levels: ${{ steps.read.outputs.levels }}
+      matrix: ${{ steps.read.outputs.matrix }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -42,8 +42,15 @@ jobs:
       # .config/android-api-levels.json is the single source of truth for which Android API
       # levels this suite tests -- read here so the matrix below and a local
       # ./scripts/device-tests.ps1 run resolve latest/common/minimum to the same numbers.
+      # UiTests get only the levels at or above uiTestsMinimum: Appium's UiAutomator2 driver
+      # refuses Android below 8.0, and device-tests.ps1 enforces the same floor.
       - id: read
-        run: echo "levels=$(jq -c '[.latest,.common,.minimum]' .config/android-api-levels.json)" >> "$GITHUB_OUTPUT"
+        run: |
+          matrix=$(jq -c '.uiTestsMinimum as $floor | [.latest,.common,.minimum] as $levels
+            | {include: ([$levels[] | {level: ., suite: "DeviceTests"}]
+                        + [$levels[] | select(. >= $floor) | {level: ., suite: "UiTests"}])}' \
+            .config/android-api-levels.json)
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   android:
     name: Android emulator (API ${{ matrix.level }}, ${{ matrix.suite }})
@@ -55,9 +62,7 @@ jobs:
     timeout-minutes: 25
     strategy:
       fail-fast: false
-      matrix:
-        level: ${{ fromJson(needs.read-api-levels.outputs.levels) }}
-        suite: [DeviceTests, UiTests]
+      matrix: ${{ fromJson(needs.read-api-levels.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6

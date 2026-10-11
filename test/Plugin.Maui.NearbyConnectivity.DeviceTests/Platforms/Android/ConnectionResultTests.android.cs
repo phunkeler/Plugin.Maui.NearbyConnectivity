@@ -51,6 +51,7 @@ public sealed class ConnectionResultTests : DeviceTest
     public async Task Failure_KeepsThePeerAndPublishesNoLostEvent()
     {
         // Arrange
+        SkipUnlessRadioHardware();
         // A discovered endpoint whose Found event is drained, then a failed handshake.
         await using var platform = Create.NearbyTransport();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -74,6 +75,7 @@ public sealed class ConnectionResultTests : DeviceTest
     public async Task Failure_LeavesTheEndpointMappingIntactForARetry()
     {
         // Arrange
+        SkipUnlessRadioHardware();
         await using var platform = Create.NearbyTransport();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         await using var run = await DiscoveryRun.StartAsync(platform, cts.Token);

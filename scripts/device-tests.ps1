@@ -31,7 +31,8 @@
 .PARAMETER AndroidApiLevel
     Which Android API level to test: latest, common, minimum (resolved from
     .config/android-api-levels.json), or a literal API level number. Defaults to 'latest'.
-    CI runs all three levels as a matrix; a local run tests one at a time.
+    CI runs all three levels as a matrix; a local run tests one at a time. -Suite UiTests needs
+    the level in uiTestsMinimum or later, because Appium's UiAutomator2 driver refuses older ones.
 
 .PARAMETER AndroidArch
     System image ABI for the Android emulator: x86_64 or arm64-v8a. Defaults to the host's own
@@ -78,14 +79,6 @@ $runnerProject = Join-Path $repoRoot 'test/Plugin.Maui.NearbyConnectivity.Device
 $uiHostProject = Join-Path $repoRoot 'test/Plugin.Maui.NearbyConnectivity.UiTests.Host/Plugin.Maui.NearbyConnectivity.UiTests.Host.csproj'
 $uiTestProject = Join-Path $repoRoot 'test/Plugin.Maui.NearbyConnectivity.UiTests/Plugin.Maui.NearbyConnectivity.UiTests.csproj'
 $uiAppId = 'com.phunkeler.nearbyconnectivity.uitests'
-# The configuration the UI host app is built and installed in. Named once so the build and the
-# APK/.app lookup below cannot disagree and install a binary from some other configuration.
-#
-# Release, not Debug: a Debug Android build uses Fast Deployment, which leaves the managed
-# assemblies out of the APK and pushes them separately via `dotnet build -t:Install`. Installing
-# that APK with plain `adb install` produces an app that aborts on launch with "No assemblies
-# found ... Assuming this is part of Fast Deployment". Release embeds the assemblies.
-$uiHostConfiguration = 'Release'
 $artifacts = Join-Path $repoRoot 'artifacts'
 New-Item -ItemType Directory -Force -Path $artifacts | Out-Null
 
@@ -216,13 +209,21 @@ function Invoke-UiTestAssembly([string]$Label, [hashtable]$Environment) {
 function Invoke-AndroidUiTests([string]$Serial, [string]$Adb, [string]$Label) {
     Install-AppiumIfMissing 'uiautomator2'
 
+    # Release, not Debug: a Debug Android build uses Fast Deployment, which leaves the managed
+    # assemblies out of the APK and pushes them separately via `dotnet build -t:Install`. Installing
+    # that APK with plain `adb install` produces an app that aborts on launch with "No assemblies
+    # found ... Assuming this is part of Fast Deployment". Release embeds the assemblies. Named
+    # once so the build and the APK lookup below cannot disagree.
+    $configuration = 'Release'
+
     Write-Host 'Building and installing the UI test host app (adb install -r -g)...'
-    dotnet build $uiHostProject -c $uiHostConfiguration -f net10.0-android -p:TargetFrameworks=net10.0-android | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "dotnet build (UI host) failed (exit $LASTEXITCODE)." }
+    $log = Join-Path $artifacts "ui-$Label-build.log"
+    dotnet build $uiHostProject -c $configuration -f net10.0-android -p:TargetFrameworks=net10.0-android > $log 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "dotnet build (UI host) failed (exit $LASTEXITCODE). See $log." }
 
     # Scoped to the configuration just built. A bare bin/ search also matches APKs left by earlier
     # builds in other configurations, and installing one of those silently tests a stale binary.
-    $apkRoot = Join-Path (Split-Path $uiHostProject) "bin/$uiHostConfiguration/net10.0-android"
+    $apkRoot = Join-Path (Split-Path $uiHostProject) "bin/$configuration/net10.0-android"
     $apk = Get-ChildItem -Path $apkRoot -Filter '*-Signed.apk' -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1 -ExpandProperty FullName
@@ -263,12 +264,18 @@ function Invoke-AndroidUiTests([string]$Serial, [string]$Adb, [string]$Label) {
 function Invoke-IosUiTests([string]$Udid, [string]$Rid) {
     Install-AppiumIfMissing 'xcuitest'
 
+    # Debug, not Release: the Fast Deployment reason is Android-only, and a Debug simulator .app is
+    # complete, which is what the DeviceTests leg already installs. A Release simulator build took
+    # 19 minutes on the hosted macOS runner, against the job's 25-minute limit.
+    $configuration = 'Debug'
+
     Write-Host 'Building and installing the UI test host app (simctl install)...'
-    dotnet build $uiHostProject -c $uiHostConfiguration -f net10.0-ios -p:TargetFrameworks=net10.0-ios -p:RuntimeIdentifier=$Rid | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "dotnet build (UI host) failed (exit $LASTEXITCODE)." }
+    $log = Join-Path $artifacts 'ui-ios-build.log'
+    dotnet build $uiHostProject -c $configuration -f net10.0-ios -p:TargetFrameworks=net10.0-ios -p:RuntimeIdentifier=$Rid > $log 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "dotnet build (UI host) failed (exit $LASTEXITCODE). See $log." }
 
     # Scoped to the configuration and RID just built, for the same reason as the Android APK above.
-    $appRoot = Join-Path (Split-Path $uiHostProject) "bin/$uiHostConfiguration/net10.0-ios/$Rid"
+    $appRoot = Join-Path (Split-Path $uiHostProject) "bin/$configuration/net10.0-ios/$Rid"
     $appBundle = Get-ChildItem -Path $appRoot -Directory -Filter '*.app' -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1 -ExpandProperty FullName
@@ -294,6 +301,10 @@ function Invoke-IosUiTests([string]$Udid, [string]$Rid) {
 
 function Invoke-AndroidTests {
     $level = Get-AndroidApiLevel $AndroidApiLevel
+    $uiFloor = Get-AndroidApiLevel 'uiTestsMinimum'
+    if ($Suite -eq 'UiTests' -and $level -lt $uiFloor) {
+        throw "-Suite UiTests needs API $uiFloor or later (Appium's UiAutomator2 driver supports Android 8.0+). API $level runs -Suite DeviceTests only."
+    }
     # Arch is part of the name: an x86_64 AVD and an arm64-v8a AVD are different images and must
     # not collide under one name, e.g. a dev switching -AndroidArch to reproduce a CI-only issue.
     $avdName = "device-tests-$level-$AndroidArch"
@@ -374,8 +385,9 @@ function Invoke-AndroidTests {
     # Install MSBuild target performs as part of `dotnet test`, below) preserves those grants
     # rather than resetting them, so installing here first is sufficient.
     Write-Host 'Building and pre-installing the runner app (adb install -g)...'
-    dotnet build $runnerProject -f net10.0-android -p:TargetFrameworks=net10.0-android | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "dotnet build (pre-install) failed (exit $LASTEXITCODE)." }
+    $log = Join-Path $artifacts "device-android-$level-build.log"
+    dotnet build $runnerProject -f net10.0-android -p:TargetFrameworks=net10.0-android > $log 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "dotnet build (pre-install) failed (exit $LASTEXITCODE). See $log." }
     # Scoped to the configuration just built, newest first. A bare recursive bin/ search also
     # matches APKs left by earlier builds in other configurations, and pre-installing one of those
     # silently runs the previous build's tests. Debug, not Release: `dotnet test` below builds and
