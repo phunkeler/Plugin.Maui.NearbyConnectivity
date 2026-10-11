@@ -15,14 +15,30 @@ static class AppiumDriverFactory
 
     public static bool IsConfigured => Environment.GetEnvironmentVariable(ServerUrlVariable) is not null;
 
+    /// <summary>Opens the session, retrying a failed attempt twice.</summary>
+    /// <remarks>
+    /// The whole suite shares this one session, so a failure here fails every test. On a hosted
+    /// emulator, adbd drops its host transport for a second or two ("device offline") often enough
+    /// to land inside session setup, and the transport is back before a retry needs it.
+    /// </remarks>
     public static AppiumDriver Create()
     {
         var serverUrl = new Uri(Required(ServerUrlVariable));
         var platform = Environment.GetEnvironmentVariable("UITEST_PLATFORM") ?? "android";
 
-        return platform.Equals("ios", StringComparison.OrdinalIgnoreCase)
-            ? CreateIos(serverUrl)
-            : CreateAndroid(serverUrl);
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return platform.Equals("ios", StringComparison.OrdinalIgnoreCase)
+                    ? CreateIos(serverUrl)
+                    : CreateAndroid(serverUrl);
+            }
+            catch (WebDriverException) when (attempt < 3)
+            {
+                Thread.Sleep(TimeSpan.FromSeconds(5));
+            }
+        }
     }
 
     static AndroidDriver CreateAndroid(Uri serverUrl)
