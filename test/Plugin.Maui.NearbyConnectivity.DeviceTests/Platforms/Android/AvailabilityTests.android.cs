@@ -42,6 +42,7 @@ public sealed class AvailabilityTests : DeviceTest
     public async Task StartAdvertising_WithAMaxSizedPresence_IsAcceptedByGms()
     {
         // Arrange
+        SkipUnlessRadioHardware();
         var options = Create.DefaultOptions(
             displayName: new string('x', NearbyPresence.MaxDisplayNameBytes),
             info: new byte[NearbyPresence.MaxInfoBytes]);

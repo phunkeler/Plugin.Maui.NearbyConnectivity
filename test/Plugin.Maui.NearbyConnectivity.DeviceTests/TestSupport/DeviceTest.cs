@@ -20,7 +20,7 @@ namespace Plugin.Maui.NearbyConnectivity.DeviceTests;
 /// is what makes callback-thread logging reach the TRX.
 /// </para>
 /// </remarks>
-public abstract class DeviceTest : IDisposable
+public abstract partial class DeviceTest : IDisposable
 {
     readonly TestOutputLoggerProvider _logProvider;
     readonly ILoggerFactory _loggerFactory;

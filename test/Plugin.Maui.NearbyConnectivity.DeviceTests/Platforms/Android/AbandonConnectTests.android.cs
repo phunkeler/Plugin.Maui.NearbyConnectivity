@@ -13,6 +13,7 @@ public sealed class AbandonConnectTests : DeviceTest
     public async Task CancelledHandshake_AbandonsThePlatformConnection()
     {
         // Arrange
+        SkipUnlessRadioHardware();
         // A pending initiator handshake the platform tracks in PeerLookup.
         await using var platform = Create.NearbyTransport();
         using var cts = new CancellationTokenSource();

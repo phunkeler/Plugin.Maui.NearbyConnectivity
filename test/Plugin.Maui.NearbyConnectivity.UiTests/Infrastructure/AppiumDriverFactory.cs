@@ -15,14 +15,30 @@ static class AppiumDriverFactory
 
     public static bool IsConfigured => Environment.GetEnvironmentVariable(ServerUrlVariable) is not null;
 
+    /// <summary>Opens the session, retrying a failed attempt twice.</summary>
+    /// <remarks>
+    /// The whole suite shares this one session, so a failure here fails every test. On a hosted
+    /// emulator, adbd drops its host transport for a second or two ("device offline") often enough
+    /// to land inside session setup, and the transport is back before a retry needs it.
+    /// </remarks>
     public static AppiumDriver Create()
     {
         var serverUrl = new Uri(Required(ServerUrlVariable));
         var platform = Environment.GetEnvironmentVariable("UITEST_PLATFORM") ?? "android";
 
-        return platform.Equals("ios", StringComparison.OrdinalIgnoreCase)
-            ? CreateIos(serverUrl)
-            : CreateAndroid(serverUrl);
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return platform.Equals("ios", StringComparison.OrdinalIgnoreCase)
+                    ? CreateIos(serverUrl)
+                    : CreateAndroid(serverUrl);
+            }
+            catch (WebDriverException) when (attempt < 3)
+            {
+                Thread.Sleep(TimeSpan.FromSeconds(5));
+            }
+        }
     }
 
     static AndroidDriver CreateAndroid(Uri serverUrl)
@@ -49,6 +65,18 @@ static class AppiumDriverFactory
         options.AddAdditionalAppiumOption("bundleId", AppId);
         options.AddAdditionalAppiumOption("noReset", true);
         options.AddAdditionalAppiumOption("newCommandTimeout", 120);
+
+        // Without a prebuilt WebDriverAgent, the first session compiles it with xcodebuild, which
+        // on a fresh hosted runner outlasts the 120-second session request below.
+        options.AddAdditionalAppiumOption("usePreinstalledWDA", true);
+        options.AddAdditionalAppiumOption("prebuiltWDAPath", Required("WDA_APP_PATH"));
+
+        // A simulator booted without its window is restarted with the window open, costing about
+        // a minute, unless the driver is told the run is headless.
+        if (Environment.GetEnvironmentVariable("IOS_HEADLESS") is not null)
+        {
+            options.AddAdditionalAppiumOption("isHeadless", true);
+        }
 
         return new IOSDriver(serverUrl, options, TimeSpan.FromSeconds(120));
     }

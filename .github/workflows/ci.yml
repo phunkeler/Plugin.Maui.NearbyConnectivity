@@ -101,7 +101,7 @@ jobs:
         if: env.HAS_SONAR_TOKEN == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: dotnet dotnet-sonarscanner begin /k:"phunkeler_Plugin.Maui.NearbyConnectivity" /o:"phunkeler" /d:sonar.token="$SONAR_TOKEN" /d:sonar.cs.vscoveragexml.reportsPaths="${{ runner.temp }}/coverage.xml" /d:sonar.exclusions="test/**/**,samples/**,.github/**,.vscode/**,global.json,nuget.config"
+        run: dotnet dotnet-sonarscanner begin /k:"phunkeler_Plugin.Maui.NearbyConnectivity" /o:"phunkeler" /d:sonar.token="$SONAR_TOKEN" /d:sonar.cs.vscoveragexml.reportsPaths="${{ runner.temp }}/coverage.xml" /d:sonar.exclusions="test/**/**,samples/**,.github/**,.vscode/**,global.json,nuget.config" /d:sonar.coverage.exclusions="scripts/**"
 
       - name: Build and test
         run: pwsh scripts/Invoke-Tests.ps1 -Coverage -CoveragePath "${{ runner.temp }}/coverage.xml"

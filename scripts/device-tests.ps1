@@ -31,7 +31,8 @@
 .PARAMETER AndroidApiLevel
     Which Android API level to test: latest, common, minimum (resolved from
     .config/android-api-levels.json), or a literal API level number. Defaults to 'latest'.
-    CI runs all three levels as a matrix; a local run tests one at a time.
+    CI runs all three levels as a matrix; a local run tests one at a time. -Suite UiTests needs
+    the level in uiTestsMinimum or later, because Appium's UiAutomator2 driver refuses older ones.
 
 .PARAMETER AndroidArch
     System image ABI for the Android emulator: x86_64 or arm64-v8a. Defaults to the host's own
@@ -78,14 +79,6 @@ $runnerProject = Join-Path $repoRoot 'test/Plugin.Maui.NearbyConnectivity.Device
 $uiHostProject = Join-Path $repoRoot 'test/Plugin.Maui.NearbyConnectivity.UiTests.Host/Plugin.Maui.NearbyConnectivity.UiTests.Host.csproj'
 $uiTestProject = Join-Path $repoRoot 'test/Plugin.Maui.NearbyConnectivity.UiTests/Plugin.Maui.NearbyConnectivity.UiTests.csproj'
 $uiAppId = 'com.phunkeler.nearbyconnectivity.uitests'
-# The configuration the UI host app is built and installed in. Named once so the build and the
-# APK/.app lookup below cannot disagree and install a binary from some other configuration.
-#
-# Release, not Debug: a Debug Android build uses Fast Deployment, which leaves the managed
-# assemblies out of the APK and pushes them separately via `dotnet build -t:Install`. Installing
-# that APK with plain `adb install` produces an app that aborts on launch with "No assemblies
-# found ... Assuming this is part of Fast Deployment". Release embeds the assemblies.
-$uiHostConfiguration = 'Release'
 $artifacts = Join-Path $repoRoot 'artifacts'
 New-Item -ItemType Directory -Force -Path $artifacts | Out-Null
 
@@ -216,13 +209,21 @@ function Invoke-UiTestAssembly([string]$Label, [hashtable]$Environment) {
 function Invoke-AndroidUiTests([string]$Serial, [string]$Adb, [string]$Label) {
     Install-AppiumIfMissing 'uiautomator2'
 
+    # Release, not Debug: a Debug Android build uses Fast Deployment, which leaves the managed
+    # assemblies out of the APK and pushes them separately via `dotnet build -t:Install`. Installing
+    # that APK with plain `adb install` produces an app that aborts on launch with "No assemblies
+    # found ... Assuming this is part of Fast Deployment". Release embeds the assemblies. Named
+    # once so the build and the APK lookup below cannot disagree.
+    $configuration = 'Release'
+
     Write-Host 'Building and installing the UI test host app (adb install -r -g)...'
-    dotnet build $uiHostProject -c $uiHostConfiguration -f net10.0-android -p:TargetFrameworks=net10.0-android | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "dotnet build (UI host) failed (exit $LASTEXITCODE)." }
+    $log = Join-Path $artifacts "ui-$Label-build.log"
+    dotnet build $uiHostProject -c $configuration -f net10.0-android -p:TargetFrameworks=net10.0-android > $log 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "dotnet build (UI host) failed (exit $LASTEXITCODE). See $log." }
 
     # Scoped to the configuration just built. A bare bin/ search also matches APKs left by earlier
     # builds in other configurations, and installing one of those silently tests a stale binary.
-    $apkRoot = Join-Path (Split-Path $uiHostProject) "bin/$uiHostConfiguration/net10.0-android"
+    $apkRoot = Join-Path (Split-Path $uiHostProject) "bin/$configuration/net10.0-android"
     $apk = Get-ChildItem -Path $apkRoot -Filter '*-Signed.apk' -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1 -ExpandProperty FullName
@@ -263,12 +264,18 @@ function Invoke-AndroidUiTests([string]$Serial, [string]$Adb, [string]$Label) {
 function Invoke-IosUiTests([string]$Udid, [string]$Rid) {
     Install-AppiumIfMissing 'xcuitest'
 
+    # Debug, not Release: the Fast Deployment reason is Android-only, and a Debug simulator .app is
+    # complete, which is what the DeviceTests leg already installs. A Release simulator build took
+    # 19 minutes on the hosted macOS runner, against the job's 25-minute limit.
+    $configuration = 'Debug'
+
     Write-Host 'Building and installing the UI test host app (simctl install)...'
-    dotnet build $uiHostProject -c $uiHostConfiguration -f net10.0-ios -p:TargetFrameworks=net10.0-ios -p:RuntimeIdentifier=$Rid | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "dotnet build (UI host) failed (exit $LASTEXITCODE)." }
+    $log = Join-Path $artifacts 'ui-ios-build.log'
+    dotnet build $uiHostProject -c $configuration -f net10.0-ios -p:TargetFrameworks=net10.0-ios -p:RuntimeIdentifier=$Rid > $log 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "dotnet build (UI host) failed (exit $LASTEXITCODE). See $log." }
 
     # Scoped to the configuration and RID just built, for the same reason as the Android APK above.
-    $appRoot = Join-Path (Split-Path $uiHostProject) "bin/$uiHostConfiguration/net10.0-ios/$Rid"
+    $appRoot = Join-Path (Split-Path $uiHostProject) "bin/$configuration/net10.0-ios/$Rid"
     $appBundle = Get-ChildItem -Path $appRoot -Directory -Filter '*.app' -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1 -ExpandProperty FullName
@@ -276,6 +283,16 @@ function Invoke-IosUiTests([string]$Udid, [string]$Rid) {
 
     xcrun simctl install $Udid $appBundle
     if ($LASTEXITCODE -ne 0) { throw "simctl install failed (exit $LASTEXITCODE)." }
+
+    # The driver's prebuilt simulator WebDriverAgent installs in seconds; compiling it inside the
+    # first session outlasts that session's timeout on a fresh runner. The download refuses an
+    # existing directory, so the previous copy goes first.
+    $wdaDir = Join-Path ([IO.Path]::GetTempPath()) 'nearby-uitests-wda'
+    Remove-Item $wdaDir -Recurse -Force -ErrorAction SilentlyContinue
+    appium driver run xcuitest download-wda-sim --platform=ios "--outdir=$wdaDir"
+    if ($LASTEXITCODE -ne 0) { throw "appium driver run xcuitest download-wda-sim failed (exit $LASTEXITCODE)." }
+    $wdaApp = Get-ChildItem -Path $wdaDir -Directory -Filter '*.app' | Select-Object -First 1 -ExpandProperty FullName
+    if (-not $wdaApp) { throw "No WebDriverAgent .app found under '$wdaDir'." }
 
     $port = 4723
     $server = $null
@@ -285,6 +302,9 @@ function Invoke-IosUiTests([string]$Udid, [string]$Rid) {
             'APPIUM_URL'      = "http://127.0.0.1:$port"
             'UITEST_PLATFORM' = 'ios'
             'DEVICE_SERIAL'   = $Udid
+            'WDA_APP_PATH'    = $wdaApp
+            # Matches the simulator boot in Invoke-IosTests, which skips the window in CI.
+            'IOS_HEADLESS'    = if ($env:CI) { 'true' } else { $null }
         }
     }
     finally {
@@ -294,6 +314,10 @@ function Invoke-IosUiTests([string]$Udid, [string]$Rid) {
 
 function Invoke-AndroidTests {
     $level = Get-AndroidApiLevel $AndroidApiLevel
+    $uiFloor = Get-AndroidApiLevel 'uiTestsMinimum'
+    if ($Suite -eq 'UiTests' -and $level -lt $uiFloor) {
+        throw "-Suite UiTests needs API $uiFloor or later (Appium's UiAutomator2 driver supports Android 8.0+). API $level runs -Suite DeviceTests only."
+    }
     # Arch is part of the name: an x86_64 AVD and an arm64-v8a AVD are different images and must
     # not collide under one name, e.g. a dev switching -AndroidArch to reproduce a CI-only issue.
     $avdName = "device-tests-$level-$AndroidArch"
@@ -374,8 +398,9 @@ function Invoke-AndroidTests {
     # Install MSBuild target performs as part of `dotnet test`, below) preserves those grants
     # rather than resetting them, so installing here first is sufficient.
     Write-Host 'Building and pre-installing the runner app (adb install -g)...'
-    dotnet build $runnerProject -f net10.0-android -p:TargetFrameworks=net10.0-android | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "dotnet build (pre-install) failed (exit $LASTEXITCODE)." }
+    $log = Join-Path $artifacts "device-android-$level-build.log"
+    dotnet build $runnerProject -f net10.0-android -p:TargetFrameworks=net10.0-android > $log 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "dotnet build (pre-install) failed (exit $LASTEXITCODE). See $log." }
     # Scoped to the configuration just built, newest first. A bare recursive bin/ search also
     # matches APKs left by earlier builds in other configurations, and pre-installing one of those
     # silently runs the previous build's tests. Debug, not Release: `dotnet test` below builds and
@@ -417,13 +442,28 @@ function Invoke-AndroidTests {
         # call the real GMS AcceptConnectionAsync, which needs a genuine second device's
         # requestConnection to reach the connection state that call validates against -- a
         # single, radio-isolated emulator always fails them with STATUS_OUT_OF_ORDER_API_CALL.
-        dotnet test $runnerProject -f net10.0-android -p:TargetFrameworks=net10.0-android -p:DeviceRunnersDevice=$serial --filter 'Category!=RequiresRealPeer' --logger 'trx;LogFileName=test-results.trx'
+        dotnet test $runnerProject -f net10.0-android -p:TargetFrameworks=net10.0-android -p:DeviceRunnersDevice=$serial --filter 'Category!=RequiresRealPeer' --logger 'trx;LogFileName=test-results.trx' |
+            Tee-Object -Variable testOutput | Out-Host
         $testExitCode = $LASTEXITCODE
     }
     finally {
         Stop-Job $logcatReceiver, $logcatJob -ErrorAction SilentlyContinue
         Receive-Job -Id $logcatJob.Id | ForEach-Object { Write-Host "[logcat] $_" }
         Remove-Job $logcatReceiver, $logcatJob -Force -ErrorAction SilentlyContinue
+    }
+
+    # DeviceRunners 0.1.0-preview.12 returns 1 when its post-run logcat dump fails, even after every
+    # result arrived and none failed: the catch block in its Android TestCommand.cs overrides the
+    # result. That case, and only that case, prints its logcat retry after a zero-failure results
+    # line and prints no crash report. The TRX cannot tell it apart, because a run that lost results
+    # to a crash also reads as passed. Remove this once DeviceRunners keeps the result.
+    $output = $testOutput -join "`n"
+    if ($testExitCode -ne 0 -and
+        $output -match 'Results: Total=\d+, Passed=\d+, Failed=0,' -and
+        $output -match 'Saving logcat due to error' -and
+        $output -notmatch 'appears to have crashed') {
+        Write-Warning 'DeviceRunners failed its post-run logcat dump after every result arrived with none failed. Its exit code is ignored.'
+        $testExitCode = 0
     }
     if ($testExitCode -ne 0) { throw "Android device tests failed (exit $testExitCode)." }
 
