@@ -16,6 +16,8 @@ sealed class AppSession : IDisposable
 
     public static TimeSpan DefaultTimeout { get; } = TimeSpan.FromSeconds(15);
 
+    static readonly TimeSpan s_overflowSettle = TimeSpan.FromSeconds(3);
+
     public AppSession()
     {
         _driver = AppiumDriverFactory.Create();
@@ -92,9 +94,9 @@ sealed class AppSession : IDisposable
     /// </para>
     /// <para>
     /// Tapping "More" does not always show the list. iOS remembers which overflow page was open
-    /// last and returns straight to it, so when that is the page being asked for there is no row
-    /// to tap and none ever appears — waiting for one would time out on a navigation that already
-    /// succeeded. The caller's own wait for the page is what confirms the result either way.
+    /// last and returns straight to it, and that can be a different overflow page from the one
+    /// asked for. Tapping the selected "More" tab again pops back to the list, so the row is always
+    /// tapped, even when the remembered page happens to be the right one.
     /// </para>
     /// </remarks>
     public void TapTab(string title)
@@ -106,9 +108,26 @@ sealed class AppSession : IDisposable
 
         _driver.FindElement(MobileBy.AccessibilityId(MoreTab)).Click();
 
-        // The overflow animates in, and its rows only accept taps once it has settled — but stop
-        // as soon as the row is gone from the screen, which is how "already on that page" looks.
-        Wait(timeout: null).Until(_ => TryTap(OverflowRow(title)) || !Showing(OverflowRow(title)));
+        if (!_isAndroid && !Appears(OverflowRow(title), s_overflowSettle))
+        {
+            _driver.FindElement(MobileBy.AccessibilityId(MoreTab)).Click();
+        }
+
+        // The overflow animates in, and its rows only accept taps once it has settled.
+        Wait(timeout: null).Until(_ => TryTap(OverflowRow(title)));
+    }
+
+    /// <summary>Whether <paramref name="locator"/> shows up on screen within <paramref name="within"/>.</summary>
+    bool Appears(By locator, TimeSpan within)
+    {
+        try
+        {
+            return Wait(within).Until(_ => Showing(locator));
+        }
+        catch (WebDriverTimeoutException)
+        {
+            return false;
+        }
     }
 
     /// <summary>Whether <paramref name="locator"/> matches anything on screen right now.</summary>
