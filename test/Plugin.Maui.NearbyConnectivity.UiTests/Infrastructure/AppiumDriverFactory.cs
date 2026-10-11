@@ -50,6 +50,18 @@ static class AppiumDriverFactory
         options.AddAdditionalAppiumOption("noReset", true);
         options.AddAdditionalAppiumOption("newCommandTimeout", 120);
 
+        // Without a prebuilt WebDriverAgent, the first session compiles it with xcodebuild, which
+        // on a fresh hosted runner outlasts the 120-second session request below.
+        options.AddAdditionalAppiumOption("usePreinstalledWDA", true);
+        options.AddAdditionalAppiumOption("prebuiltWDAPath", Required("WDA_APP_PATH"));
+
+        // A simulator booted without its window is restarted with the window open, costing about
+        // a minute, unless the driver is told the run is headless.
+        if (Environment.GetEnvironmentVariable("IOS_HEADLESS") is not null)
+        {
+            options.AddAdditionalAppiumOption("isHeadless", true);
+        }
+
         return new IOSDriver(serverUrl, options, TimeSpan.FromSeconds(120));
     }
 

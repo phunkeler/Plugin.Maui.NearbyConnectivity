@@ -284,6 +284,16 @@ function Invoke-IosUiTests([string]$Udid, [string]$Rid) {
     xcrun simctl install $Udid $appBundle
     if ($LASTEXITCODE -ne 0) { throw "simctl install failed (exit $LASTEXITCODE)." }
 
+    # The driver's prebuilt simulator WebDriverAgent installs in seconds; compiling it inside the
+    # first session outlasts that session's timeout on a fresh runner. The download refuses an
+    # existing directory, so the previous copy goes first.
+    $wdaDir = Join-Path ([IO.Path]::GetTempPath()) 'nearby-uitests-wda'
+    Remove-Item $wdaDir -Recurse -Force -ErrorAction SilentlyContinue
+    appium driver run xcuitest download-wda-sim --platform=ios "--outdir=$wdaDir"
+    if ($LASTEXITCODE -ne 0) { throw "appium driver run xcuitest download-wda-sim failed (exit $LASTEXITCODE)." }
+    $wdaApp = Get-ChildItem -Path $wdaDir -Directory -Filter '*.app' | Select-Object -First 1 -ExpandProperty FullName
+    if (-not $wdaApp) { throw "No WebDriverAgent .app found under '$wdaDir'." }
+
     $port = 4723
     $server = $null
     try {
@@ -292,6 +302,9 @@ function Invoke-IosUiTests([string]$Udid, [string]$Rid) {
             'APPIUM_URL'      = "http://127.0.0.1:$port"
             'UITEST_PLATFORM' = 'ios'
             'DEVICE_SERIAL'   = $Udid
+            'WDA_APP_PATH'    = $wdaApp
+            # Matches the simulator boot in Invoke-IosTests, which skips the window in CI.
+            'IOS_HEADLESS'    = if ($env:CI) { 'true' } else { $null }
         }
     }
     finally {
@@ -429,13 +442,28 @@ function Invoke-AndroidTests {
         # call the real GMS AcceptConnectionAsync, which needs a genuine second device's
         # requestConnection to reach the connection state that call validates against -- a
         # single, radio-isolated emulator always fails them with STATUS_OUT_OF_ORDER_API_CALL.
-        dotnet test $runnerProject -f net10.0-android -p:TargetFrameworks=net10.0-android -p:DeviceRunnersDevice=$serial --filter 'Category!=RequiresRealPeer' --logger 'trx;LogFileName=test-results.trx'
+        dotnet test $runnerProject -f net10.0-android -p:TargetFrameworks=net10.0-android -p:DeviceRunnersDevice=$serial --filter 'Category!=RequiresRealPeer' --logger 'trx;LogFileName=test-results.trx' |
+            Tee-Object -Variable testOutput | Out-Host
         $testExitCode = $LASTEXITCODE
     }
     finally {
         Stop-Job $logcatReceiver, $logcatJob -ErrorAction SilentlyContinue
         Receive-Job -Id $logcatJob.Id | ForEach-Object { Write-Host "[logcat] $_" }
         Remove-Job $logcatReceiver, $logcatJob -Force -ErrorAction SilentlyContinue
+    }
+
+    # DeviceRunners 0.1.0-preview.12 returns 1 when its post-run logcat dump fails, even after every
+    # result arrived and none failed: the catch block in its Android TestCommand.cs overrides the
+    # result. That case, and only that case, prints its logcat retry after a zero-failure results
+    # line and prints no crash report. The TRX cannot tell it apart, because a run that lost results
+    # to a crash also reads as passed. Remove this once DeviceRunners keeps the result.
+    $output = $testOutput -join "`n"
+    if ($testExitCode -ne 0 -and
+        $output -match 'Results: Total=\d+, Passed=\d+, Failed=0,' -and
+        $output -match 'Saving logcat due to error' -and
+        $output -notmatch 'appears to have crashed') {
+        Write-Warning 'DeviceRunners failed its post-run logcat dump after every result arrived with none failed. Its exit code is ignored.'
+        $testExitCode = 0
     }
     if ($testExitCode -ne 0) { throw "Android device tests failed (exit $testExitCode)." }
 
