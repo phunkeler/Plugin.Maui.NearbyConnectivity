@@ -43,6 +43,7 @@ pwsh scripts/device-tests.ps1 -Platform ios -Suite UiTests         # Appium plug
 
 dotnet build src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj -c Release   # library only
 dotnet build src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj -p:PublicApiType=Skip   # iterate without the API analyzer
+dotnet restore src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj -p:TargetFrameworks=net10.0   # once, docfx does not restore
 dotnet docfx docs/docfx.json --serve                                      # docs site locally
 ```
 

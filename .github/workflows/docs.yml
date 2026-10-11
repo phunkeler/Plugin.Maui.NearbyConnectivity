@@ -11,6 +11,7 @@ on:
       - 'README.md'
       - 'CONTRIBUTING.md'
       - 'SECURITY.md'
+      - '.lycheeignore'
       - '.github/workflows/docs.yml'
   # ci.yml skips Markdown-only commits, so this is the only gate a docs change passes through.
   # The build and the link check run; publishing does not.
@@ -39,8 +40,13 @@ jobs:
         run: dotnet tool restore
 
       # metadata builds the library as plain net10.0 (docfx.json overrides TargetFrameworks), so no
-      # Android/iOS workload is needed here. If that stops holding, move to macos-26-intel and add
+      # Android/iOS workload is needed here. DocFX's own restore ignores that override and fails on
+      # the android target without the workload, so docfx.json sets noRestore and this step
+      # restores net10.0 only. If that stops holding, move to macos-26-intel and add
       # `dotnet workload restore`.
+      - name: Restore the library for net10.0
+        run: dotnet restore src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj -p:TargetFrameworks=net10.0
+
       - name: Build site
         run: dotnet docfx docs/docfx.json --warningsAsErrors
 
@@ -59,16 +65,21 @@ jobs:
             fi
           done
 
-      # --remap points the absolute phunkeler.github.io URLs in README.md and in the library's
-      # <seealso href> docs at the site that was just built, so renaming a page fails here rather
-      # than 404ing for a reader after the merge.
+      # Offline: learn.microsoft.com answers a runner with 429 and github.com with 503, and lychee
+      # waits out each Retry-After, so an online check ran past the job timeout. What this check
+      # is for is local anyway. The remaps point the absolute site URLs at the site that was just
+      # built, and the repo's blob/tree URLs (DocFX "View source" links and the ones in the docs)
+      # at this checkout, so a renamed page or a moved source file fails here rather than 404ing
+      # for a reader after the merge.
       - name: Check links
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           fail: true
           args: >-
             --no-progress
+            --offline
             --remap 'https://phunkeler.github.io/Plugin.Maui.NearbyConnectivity/(.*) file://${{ github.workspace }}/docs/_site/$1'
+            --remap 'https://github.com/phunkeler/Plugin.Maui.NearbyConnectivity/(?:blob|tree)/.+?/((?:src|samples|test|docs|scripts)/[^#]*?|[A-Z][A-Za-z]*(?:\.md)?)/?(?:#.*)?$ file://${{ github.workspace }}/$1'
             README.md CONTRIBUTING.md SECURITY.md 'docs/_site/**/*.html'
 
       - if: github.event_name != 'pull_request'

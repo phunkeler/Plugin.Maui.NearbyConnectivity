@@ -57,7 +57,7 @@ jobs:
           if ($result.FailedCount -gt 0) { exit 1 }
 
       - name: Restore Workloads
-        run: dotnet workload restore src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj
+        run: dotnet workload restore Plugin.Maui.NearbyConnectivity.slnx
 
       # Mirrors the gate in release.yml so a vulnerable dependency is caught on the pull request
       # that introduces it, not at release time. Kept identical to that step on purpose — if one
@@ -199,6 +199,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
+          GH_REPO: ${{ github.repository }}
 
   dependency-review:
     name: Dependency review

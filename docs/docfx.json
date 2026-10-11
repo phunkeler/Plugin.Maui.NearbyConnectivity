@@ -12,6 +12,7 @@
       "properties": {
         "TargetFrameworks": "net10.0"
       },
+      "noRestore": true,
       "namespaceLayout": "flattened",
       "memberLayout": "samePage"
     }
