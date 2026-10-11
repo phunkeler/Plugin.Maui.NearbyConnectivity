@@ -18,6 +18,11 @@ sealed class AppSession : IDisposable
 
     static readonly TimeSpan s_overflowSettle = TimeSpan.FromSeconds(3);
 
+    // The More list's own bar carries "Edit"; matching it instead of the back button would put the
+    // list into tab-reordering mode.
+    static readonly By s_overflowBack = MobileBy.IosClassChain(
+        "**/XCUIElementTypeNavigationBar/XCUIElementTypeButton[`name != \"Edit\"`]");
+
     public AppSession()
     {
         _driver = AppiumDriverFactory.Create();
@@ -95,8 +100,10 @@ sealed class AppSession : IDisposable
     /// <para>
     /// Tapping "More" does not always show the list. iOS remembers which overflow page was open
     /// last and returns straight to it, and that can be a different overflow page from the one
-    /// asked for. Tapping the selected "More" tab again pops back to the list, so the row is always
-    /// tapped, even when the remembered page happens to be the right one.
+    /// asked for. Tapping "More" again does not pop it: UIKit reports the overflow page, not the
+    /// More stack, as the selected controller, so the second tap is not a reselect. The navigation
+    /// bar's back button is the only reliable way back to the list, so the row is always tapped,
+    /// even when the remembered page happens to be the right one.
     /// </para>
     /// </remarks>
     public void TapTab(string title)
@@ -110,7 +117,7 @@ sealed class AppSession : IDisposable
 
         if (!_isAndroid && !Appears(OverflowRow(title), s_overflowSettle))
         {
-            _driver.FindElement(MobileBy.AccessibilityId(MoreTab)).Click();
+            _driver.FindElement(s_overflowBack).Click();
         }
 
         // The overflow animates in, and its rows only accept taps once it has settled.
