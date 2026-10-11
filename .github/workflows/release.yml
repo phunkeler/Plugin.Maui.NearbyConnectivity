@@ -159,6 +159,11 @@ jobs:
       VERSION: ${{ needs.verify.outputs.version }}
 
     steps:
+      # Needed for CHANGELOG.md only. Shallow: the version is already decided upstream, so there is
+      # no NBGV computation here that would need history. Keep it before the download: checkout
+      # empties the workspace, so it would delete the packages.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
       # The package is never rebuilt here. Rebuilding would produce a different binary from the one
       # that passed the gates above, and the attestation below would then vouch for an artifact
       # nothing tested.
@@ -167,10 +172,6 @@ jobs:
         with:
           name: nupkgs
           path: nupkgs
-
-      # Needed for CHANGELOG.md only. Shallow: the version is already decided upstream, so there is
-      # no NBGV computation here that would need history.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       # Trusted Publishing: the nuget.org policy binds owner + repo + workflow file + environment,
       # so no long-lived API key exists to leak. `user` is the nuget.org profile name the policy is
