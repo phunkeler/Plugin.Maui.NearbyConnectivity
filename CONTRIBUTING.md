@@ -63,6 +63,14 @@ pwsh scripts/device-tests.ps1 -Platform android -Suite UiTests            # Appi
 pwsh scripts/device-tests.ps1 -Platform ios -Suite UiTests
 ```
 
+The plugin UI tests need Android API 26 or later (`uiTestsMinimum` in
+`.config/android-api-levels.json`). Appium's UiAutomator2 driver does not support older versions,
+so CI runs the UI suite only on levels at or above it.
+
+The Android device tests that start the real radio are skipped on a device that declares neither
+Wi-Fi nor Bluetooth hardware, because Google Play services fails every start there. The API 24
+emulator image is such a device, so those tests show as "not run" on that leg.
+
 The build scripts have their own tests. They need [Pester](https://pester.dev) 6.2.0:
 
 ```powershell

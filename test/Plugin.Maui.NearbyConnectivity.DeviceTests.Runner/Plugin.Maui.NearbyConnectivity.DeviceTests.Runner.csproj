@@ -10,6 +10,13 @@
     <!-- The MAUI app defines its own Program.Main; disable the auto-generated testing platform entry point. -->
     <GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
 
+    <!--
+      Seconds the DeviceRunners CLI waits without a test result before it reports an app crash
+      and drops every result still to come. It must exceed the longest wait inside one test
+      (EphemeralIdentityTests waits up to 80 s), or a test's own timeout is misreported as a crash.
+    -->
+    <DeviceRunnersDataTimeout>120</DeviceRunnersDataTimeout>
+
     <ApplicationTitle>NearbyConnectivity Device Tests</ApplicationTitle>
     <ApplicationId>com.phunkeler.nearbyconnectivity.devicetests</ApplicationId>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>

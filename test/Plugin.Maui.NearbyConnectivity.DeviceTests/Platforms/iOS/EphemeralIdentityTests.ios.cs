@@ -76,10 +76,25 @@ public sealed class EphemeralIdentityTests : DeviceTest
         Assert.NotNull(session);
     }
 
+    // Multipeer abandons a connection whose post-handshake setup outlasts its own ICE timeout,
+    // about 12 seconds, and a hosted simulator's trustd has spent 7 of those on one certificate.
+    // A lost race is retried; an identity the DTLS handshake rejects fails every attempt.
     [Fact]
     public async Task TwoIdentities_CompleteADtlsHandshake()
     {
-        // Arrange
+        // Act
+        var connected = false;
+        for (var attempt = 0; attempt < 3 && !connected; attempt++)
+        {
+            connected = await ConnectTwoSessionsAsync();
+        }
+
+        // Assert
+        Assert.True(connected);
+    }
+
+    static async Task<bool> ConnectTwoSessionsAsync()
+    {
         using var aliceId = new MCPeerID("alice");
         using var bobId = new MCPeerID("bob");
         using var alice = new MCSession(aliceId, EphemeralIdentity.Create(), MCEncryptionPreference.Required);
@@ -94,18 +109,22 @@ public sealed class EphemeralIdentityTests : DeviceTest
         alice.NearbyConnectionDataForPeer(bobId, (data, error) => Settle(aliceSawBob, data, error));
         bob.NearbyConnectionDataForPeer(aliceId, (data, error) => Settle(bobSawAlice, data, error));
 
-        // Act
         alice.ConnectPeer(bobId, await bobSawAlice.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
         bob.ConnectPeer(aliceId, await aliceSawBob.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
 
-        // Assert
-        await aliceWatch.Connected.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
-        await bobWatch.Connected.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
-        Assert.True(aliceWatch.CertificateReceived);
-        Assert.True(bobWatch.CertificateReceived);
+        var connected = await aliceWatch.Settled.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken)
+            && await bobWatch.Settled.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 
         alice.Disconnect();
         bob.Disconnect();
+
+        if (connected)
+        {
+            Assert.True(aliceWatch.CertificateReceived);
+            Assert.True(bobWatch.CertificateReceived);
+        }
+
+        return connected;
     }
 
     static void Settle(TaskCompletionSource<NSData> tcs, NSData? data, NSError? error)
@@ -122,7 +141,8 @@ public sealed class EphemeralIdentityTests : DeviceTest
 
     sealed class ConnectionWatch : MCSessionDelegate
     {
-        public TaskCompletionSource Connected { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        /// <summary>True once connected; false if the attempt fell back to not connected.</summary>
+        public TaskCompletionSource<bool> Settled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public bool CertificateReceived { get; private set; }
 
@@ -139,9 +159,9 @@ public sealed class EphemeralIdentityTests : DeviceTest
 
         public override void DidChangeState(MCSession session, MCPeerID peerID, MCSessionState state)
         {
-            if (state is MCSessionState.Connected)
+            if (state is MCSessionState.Connected or MCSessionState.NotConnected)
             {
-                Connected.TrySetResult();
+                Settled.TrySetResult(state is MCSessionState.Connected);
             }
         }
 
