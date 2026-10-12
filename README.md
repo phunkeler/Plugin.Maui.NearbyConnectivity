@@ -43,6 +43,8 @@ This package replaces [`Plugin.Maui.NearbyConnections`](https://www.nuget.org/pa
 Register the plugin in `MauiProgram.cs`. Devices discover each other only when they use the same `ServiceId`.
 
 ```csharp
+using Plugin.Maui.NearbyConnectivity;
+
 builder.AddNearbyConnectivity(options => options.ServiceId = "nearbyminimal");
 ```
 
