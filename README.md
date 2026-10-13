@@ -2,7 +2,7 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/Plugin.Maui.NearbyConnectivity)](https://www.nuget.org/packages/Plugin.Maui.NearbyConnectivity) [![NuGet Downloads](https://img.shields.io/nuget/dt/Plugin.Maui.NearbyConnectivity)](https://www.nuget.org/packages/Plugin.Maui.NearbyConnectivity) [![CI](https://github.com/phunkeler/Plugin.Maui.NearbyConnectivity/actions/workflows/ci.yml/badge.svg)](https://github.com/phunkeler/Plugin.Maui.NearbyConnectivity/actions/workflows/ci.yml) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=phunkeler_Plugin.Maui.NearbyConnectivity&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=phunkeler_Plugin.Maui.NearbyConnectivity) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=phunkeler_Plugin.Maui.NearbyConnectivity&metric=coverage)](https://sonarcloud.io/summary/new_code?id=phunkeler_Plugin.Maui.NearbyConnectivity) [![License](https://img.shields.io/github/license/phunkeler/Plugin.Maui.NearbyConnectivity)](https://github.com/phunkeler/Plugin.Maui.NearbyConnectivity/blob/main/LICENSE)
 
-Plugin.Maui.NearbyConnectivity provides the ability to discover, connect to, and exchange data with nearby devices that run your .NET MAUI application, without a server or an internet connection.
+Plugin.Maui.NearbyConnectivity provides the ability to discover, connect to, and exchange data with nearby devices running your .NET MAUI app, without a server or an internet connection.
 
 ## Features
 
@@ -95,6 +95,12 @@ await foreach (var (sender, payload) in nearbyConnectivity.PayloadsAsync(cancell
 ```
 
 These snippets follow [`samples/Minimal`](https://github.com/phunkeler/Plugin.Maui.NearbyConnectivity/tree/main/samples/Minimal), the app from the [Get started](https://phunkeler.github.io/Plugin.Maui.NearbyConnectivity/docs/getting-started.html) tutorial.
+
+## Demo
+
+The `NearbyChat` sample on three Android phones: two discoverers connect to one advertiser, each phone stops advertising or discovering, each pair compares its authentication code, the advertiser sends one peer a text and a photo, the other peer sends the advertiser a video, and both peers disconnect. Click the image to watch it on the docs site.
+
+[![Three phones running NearbyChat: connect, compare codes, send a text, a photo and a video, disconnect](https://raw.githubusercontent.com/phunkeler/Plugin.Maui.NearbyConnectivity/main/docs/public/demos/nearbychat-demo.png)](https://phunkeler.github.io/Plugin.Maui.NearbyConnectivity/index.html#demo)
 
 ## Documentation
 

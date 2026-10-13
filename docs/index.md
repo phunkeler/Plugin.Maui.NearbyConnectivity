@@ -13,6 +13,28 @@ _disableToc: true
   <a class="btn btn-outline-secondary mb-2" href="https://github.com/phunkeler/Plugin.Maui.NearbyConnectivity"><i class="bi bi-github" aria-hidden="true"></i> GitHub</a>
 </p>
 
+## Demo
+
+The `NearbyChat` sample on three Android phones: two discoverers connect to one advertiser,
+each phone stops advertising or discovering, each pair compares its authentication code, the
+advertiser sends one peer a text and a photo, the other peer sends the advertiser a video, and
+both peers disconnect. Recorded on real devices.
+
+<div class="d-flex text-center small fw-semibold mb-1" aria-hidden="true">
+  <div class="flex-fill">Advertiser</div>
+  <div class="flex-fill">Discoverer</div>
+  <div class="flex-fill">Discoverer</div>
+</div>
+<video controls muted playsinline preload="metadata" class="img-fluid"
+  poster="public/demos/nearbychat-demo.png" src="public/demos/nearbychat-demo.mp4">
+  <track kind="captions" src="public/demos/nearbychat-demo.vtt" srclang="en" label="What is happening" default>
+  Your browser does not play MP4. <a href="public/demos/nearbychat-demo.mp4">Download the demo.</a>
+</video>
+<p class="small text-body-secondary mb-4">The video sent is a clip of
+<a href="https://peach.blender.org/">Big Buck Bunny</a>, (c) copyright 2008, Blender Foundation /
+<a href="https://www.bigbuckbunny.org/">www.bigbuckbunny.org</a>, licensed under
+<a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>.</p>
+
 ## Supported platforms
 
 | Target | Minimum | Support |

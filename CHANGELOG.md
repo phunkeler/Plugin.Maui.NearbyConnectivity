@@ -8,6 +8,10 @@ request adds a line under **Unreleased**; the release PR moves that section unde
 
 ## [Unreleased]
 
+### Added
+
+- A demo video of the `NearbyChat` sample on three phones, on the docs home page and linked from the README.
+
 ## [1.0.0-preview.1] - 2026-10-10
 
 First public preview, and the first release under this name. It replaces
