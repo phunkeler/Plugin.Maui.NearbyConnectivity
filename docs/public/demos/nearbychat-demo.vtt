@@ -1,0 +1,50 @@
+WEBVTT
+
+00:00:02.600 --> 00:00:05.100
+Three phones run the NearbyChat sample.
+
+00:00:05.100 --> 00:00:08.700
+The advertiser starts advertising.
+
+00:00:08.700 --> 00:00:12.000
+The discoverers start discovering and find it.
+
+00:00:12.000 --> 00:00:17.400
+A discoverer asks to connect. The advertiser accepts the request.
+
+00:00:17.400 --> 00:00:26.200
+The other discoverer asks to connect and is accepted too.
+
+00:00:26.200 --> 00:00:31.200
+All three are connected. Every connection is encrypted.
+
+00:00:31.200 --> 00:00:42.800
+Each phone stops advertising or discovering. The connections stay up.
+
+00:00:42.800 --> 00:00:49.400
+Each side opens its chat. Each pair of phones derived the same six-digit authentication code on its own.
+
+00:00:49.400 --> 00:00:55.500
+Al's S22 and Bill's S21 confirm their code matches. Jay's S24 keeps its code up until its turn.
+
+00:00:55.500 --> 00:01:03.700
+Al's S22 sends Bill's S21 a text message.
+
+00:01:03.700 --> 00:01:15.200
+Then a photo, sent as a file.
+
+00:01:15.200 --> 00:01:21.000
+Al's S22 closes that chat and opens the one with Jay's S24. This pair shows its own code.
+
+00:01:21.000 --> 00:01:27.000
+Both confirm the code matches.
+
+00:01:27.000 --> 00:01:33.800
+Now Jay's S24 sends Al's S22 a text.
+
+00:01:33.800 --> 00:01:53.100
+Then the video: three and a half minutes of Big Buck Bunny, about 100 MB, phone to phone.
+
+00:01:53.100 --> 00:02:04.772
+Bill's S21 disconnects, then Jay's S24. Every phone's connections page empties.
+
