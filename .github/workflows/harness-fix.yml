@@ -69,11 +69,21 @@ jobs:
     permissions: { contents: read }
     env: { WI: "${{ needs.pick.outputs.workitem }}" }
     steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: harness-token
+        with:
+          client-id: "${{ vars.HARNESS_APP_CLIENT_ID }}"
+          private-key: "${{ secrets.HARNESS_APP_PRIVATE_KEY }}"
+          repositories: "${{ vars.HARNESS_REPO }}"
+          permission-contents: read
       - name: Install harness
+        # The harness repo is private and owned by this repo's owner. A per-job installation token with contents: read on that
+        # one repo, revoked when the job ends, stands in for a long-lived PAT; gh keeps it out of the clone's git config.
         env:
+          GH_TOKEN: "${{ steps.harness-token.outputs.token }}"
           HARNESS_REF: "${{ vars.HARNESS_REF }}"
           HARNESS_REPO: "${{ vars.HARNESS_REPO }}"
-        run: git clone --depth 1 --branch "$HARNESS_REF" "$HARNESS_REPO" /tmp/maui-harness
+        run: gh repo clone "$GITHUB_REPOSITORY_OWNER/$HARNESS_REPO" /tmp/maui-harness -- --depth 1 --branch "$HARNESS_REF"
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with: { global-json-file: /tmp/maui-harness/global.json }
       - name: Build and install harness
@@ -155,11 +165,21 @@ jobs:
       WI: "${{ needs.pick.outputs.workitem }}"
       DEFAULT_BRANCH: "${{ needs.pick.outputs.default_branch }}"
     steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: harness-token
+        with:
+          client-id: "${{ vars.HARNESS_APP_CLIENT_ID }}"
+          private-key: "${{ secrets.HARNESS_APP_PRIVATE_KEY }}"
+          repositories: "${{ vars.HARNESS_REPO }}"
+          permission-contents: read
       - name: Install harness
+        # The harness repo is private and owned by this repo's owner. A per-job installation token with contents: read on that
+        # one repo, revoked when the job ends, stands in for a long-lived PAT; gh keeps it out of the clone's git config.
         env:
+          GH_TOKEN: "${{ steps.harness-token.outputs.token }}"
           HARNESS_REF: "${{ vars.HARNESS_REF }}"
           HARNESS_REPO: "${{ vars.HARNESS_REPO }}"
-        run: git clone --depth 1 --branch "$HARNESS_REF" "$HARNESS_REPO" /tmp/maui-harness
+        run: gh repo clone "$GITHUB_REPOSITORY_OWNER/$HARNESS_REPO" /tmp/maui-harness -- --depth 1 --branch "$HARNESS_REF"
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with: { global-json-file: /tmp/maui-harness/global.json }
       - name: Build and install harness
@@ -191,11 +211,21 @@ jobs:
       VERIFY_RESULT: "${{ needs.verify.result }}"
       DEFAULT_BRANCH: "${{ needs.pick.outputs.default_branch }}"
     steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: harness-token
+        with:
+          client-id: "${{ vars.HARNESS_APP_CLIENT_ID }}"
+          private-key: "${{ secrets.HARNESS_APP_PRIVATE_KEY }}"
+          repositories: "${{ vars.HARNESS_REPO }}"
+          permission-contents: read
       - name: Install harness
+        # The harness repo is private and owned by this repo's owner. A per-job installation token with contents: read on that
+        # one repo, revoked when the job ends, stands in for a long-lived PAT; gh keeps it out of the clone's git config.
         env:
+          GH_TOKEN: "${{ steps.harness-token.outputs.token }}"
           HARNESS_REF: "${{ vars.HARNESS_REF }}"
           HARNESS_REPO: "${{ vars.HARNESS_REPO }}"
-        run: git clone --depth 1 --branch "$HARNESS_REF" "$HARNESS_REPO" /tmp/maui-harness
+        run: gh repo clone "$GITHUB_REPOSITORY_OWNER/$HARNESS_REPO" /tmp/maui-harness -- --depth 1 --branch "$HARNESS_REF"
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with: { global-json-file: /tmp/maui-harness/global.json }
       - name: Build and install harness
