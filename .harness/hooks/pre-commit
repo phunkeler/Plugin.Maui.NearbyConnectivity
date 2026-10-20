@@ -1,0 +1,3 @@
+#!/bin/sh
+# .harness/hooks/pre-commit, installed by harness init
+exec harness verify || exit 2

@@ -1,0 +1,59 @@
+name: harness verify
+# Jobs grant what they need; a job added without a permissions key gets nothing.
+permissions: {}
+on: pull_request
+jobs:
+  verify:
+    name: harness verify
+    runs-on: macos-26
+    timeout-minutes: 45
+    permissions: { contents: read }
+    steps:
+      - name: Install harness
+        env:
+          HARNESS_REF: "${{ vars.HARNESS_REF }}"
+          HARNESS_REPO: "${{ vars.HARNESS_REPO }}"
+        run: git clone --depth 1 --branch "$HARNESS_REF" "$HARNESS_REPO" /tmp/maui-harness
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with: { global-json-file: /tmp/maui-harness/global.json }
+      - name: Build and install harness
+        working-directory: /tmp/maui-harness
+        run: |
+          dotnet pack src/Harness.Cli -c Release -o /tmp/harness-pkg
+          printf '%s' '<configuration><packageSources><clear/><add key="local" value="/tmp/harness-pkg"/></packageSources></configuration>' > /tmp/harness-nuget.config
+          dotnet tool install -g Phunkeler.MauiHarness --configfile /tmp/harness-nuget.config --add-source /tmp/harness-pkg
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { ref: "${{ github.event.pull_request.head.sha }}", path: head, fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        if: hashFiles('head/global.json') != ''
+        with: { global-json-file: head/global.json }
+      - name: Verify
+        working-directory: head
+        env:
+          BASE_REF: "${{ github.base_ref }}"
+          HEAD_REF: "${{ github.head_ref }}"
+        run: harness verify --ci --target "origin/$BASE_REF" --branch "$HEAD_REF"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with: { name: "ci-evidence-${{ github.run_id }}", path: "head/.harness/evidence/**" }
+  # Runs no head code: it reads the verified head's tree and attests only the bundles this PR adds or changes.
+  attest:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions: { contents: read, id-token: write, attestations: write }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { ref: "${{ github.event.pull_request.head.sha }}", fetch-depth: 0, persist-credentials: false }
+      - id: bundles
+        env: { BASE_REF: "${{ github.base_ref }}" }
+        run: |
+          files=$(git diff --name-only --diff-filter=AMR "origin/$BASE_REF...HEAD" -- '.harness/evidence/**/bundle.json')
+          [ -z "$files" ] || { echo 'paths<<HARNESS_EOF'; printf '%s\n' "$files"; echo HARNESS_EOF; } >> "$GITHUB_OUTPUT"
+      - name: Attest evidence
+        if: steps.bundles.outputs.paths != ''
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: "${{ steps.bundles.outputs.paths }}"
+          predicate-type: "https://github.com/phunkeler/maui-harness/evidence/v1"
+          predicate: '{"harness":"verify --ci","result":"pass"}'

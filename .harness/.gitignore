@@ -1,0 +1,2 @@
+# Logs from local harness verify --ci runs; CI uploads its own copy as an artifact.
+evidence/ci/
