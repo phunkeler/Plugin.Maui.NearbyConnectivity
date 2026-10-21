@@ -1,0 +1,16 @@
+version: 1
+bootstrap: scripts/bootstrap.sh
+smoke: scripts/smoke.sh
+ui_paths: ["**/*.xaml", "**/Platforms/**"]
+governed_branches: ["agent/*"]
+protected_paths: ["tests/**", "test/**", ".harness/**", "**/*.snap.png", ".github/**", ".claude/**", "AGENTS.md", "CLAUDE.md", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props", "global.json", "NuGet.config", "nuget.config", "**/*.runsettings", "testconfig.json", ".config/**", "scripts/**"]
+allow_new: ["test/**/*Tests.cs", ".harness/repro/**"]
+workflows:
+  maintenance:
+    unit: "one bug: reproduce, fix, verify"
+    branches: ["agent/*"]
+    max_attempts: 10
+    gates:
+      - { name: repro, run: gates/repro.sh }
+      - { name: build, run: gates/build.sh }
+      - { name: test,  run: gates/test.sh }

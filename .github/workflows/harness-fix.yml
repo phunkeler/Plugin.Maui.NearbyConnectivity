@@ -1,0 +1,257 @@
+name: harness fix
+# A failed run leaves agent/ab-<id> behind on purpose: that branch is the claim that stops the next
+# poll from retrying the work item. Delete the branch to retry it.
+# No job holds a write-capable token or OIDC grant after code it did not write has run: the agent and the
+# repo's own bootstrap and gates run in contents: read jobs, and the jobs that push or post run no such code.
+# Accepted residuals are spec ADR 17.
+# Jobs grant what they need; a job added without a permissions key gets nothing.
+permissions: {}
+on:
+  schedule: [{ cron: "*/15 * * * *" }]
+  workflow_dispatch:
+    inputs: { workitem: { description: "Azure Boards work item id", required: false } }
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    outputs:
+      workitem: "${{ steps.pick.outputs.workitem }}"
+      default_branch: "${{ steps.pick.outputs.default_branch }}"
+    env:
+      GH_TOKEN: "${{ github.token }}"
+      INPUT_WI: "${{ inputs.workitem }}"
+      AZURE_DEVOPS_EXT_PAT: "${{ secrets.BOARDS_READ_PAT }}"
+      BOARDS_ORG: "${{ vars.BOARDS_ORG }}"
+      BOARDS_PROJECT: "${{ vars.BOARDS_PROJECT }}"
+    steps:
+      - id: pick
+        run: |
+          # github.event.repository is empty on schedule events, so the default branch comes from the API.
+          default_branch=$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch) || exit 1
+          if [ -z "$default_branch" ]; then echo "could not resolve the repository's default branch" >&2; exit 1; fi
+          echo "default_branch=$default_branch" >> "$GITHUB_OUTPUT"
+          claim() {
+            local sha err
+            sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$default_branch" --jq .object.sha) || exit 1
+            err=$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/agent/ab-$1" -f sha="$sha" 2>&1 >/dev/null) && return 0
+            case "$err" in *"Reference already exists"*) return 1;; esac
+            echo "claiming agent/ab-$1 failed: $err" >&2
+            exit 1
+          }
+          case "$INPUT_WI" in
+            '') ;;
+            *[!0-9]*) echo "the workitem input must be a numeric Azure Boards work item id" >&2; exit 1;;
+            *) claim "$INPUT_WI" && echo "workitem=$INPUT_WI" >> "$GITHUB_OUTPUT"; exit 0;;
+          esac
+          ids=$(az boards query --org "$BOARDS_ORG" --project "$BOARDS_PROJECT" --query "[].id" -o tsv \
+            --wiql "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project AND [System.WorkItemType] = 'Bug' AND [System.Tags] CONTAINS 'repro' AND [System.State] NOT IN ('Closed','Done','Removed','Resolved') ORDER BY [System.Id]")
+          for id in $ids; do
+            claim "$id" || continue
+            echo "workitem=$id" >> "$GITHUB_OUTPUT"; exit 0
+          done
+      - name: Fetch work item
+        if: steps.pick.outputs.workitem != ''
+        env: { WI: "${{ steps.pick.outputs.workitem }}" }
+        # Only the fields the agent needs: the reference text is committed and pushed, and the full item carries identities.
+        run: |
+          set -o pipefail
+          az boards work-item show --id "$WI" --org "$BOARDS_ORG" --output json \
+            | jq '{id, fields: (.fields | {"System.Title", "System.Description", "Microsoft.VSTS.TCM.ReproSteps", "System.WorkItemType", "System.State"})}' > /tmp/wi.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.pick.outputs.workitem != ''
+        with: { name: "wi-${{ github.run_id }}", path: /tmp/wi.json }
+  fix:
+    needs: pick
+    if: needs.pick.outputs.workitem != ''
+    runs-on: macos-26
+    timeout-minutes: 90
+    # contents: read is only for the checkout below; its credential is not persisted and no step passes the token on.
+    permissions: { contents: read }
+    env: { WI: "${{ needs.pick.outputs.workitem }}" }
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: harness-token
+        with:
+          client-id: "${{ vars.HARNESS_APP_CLIENT_ID }}"
+          private-key: "${{ secrets.HARNESS_APP_PRIVATE_KEY }}"
+          repositories: "${{ vars.HARNESS_REPO }}"
+          permission-contents: read
+      - name: Install harness
+        # The harness repo is private and owned by this repo's owner. A per-job installation token with contents: read on that
+        # one repo, revoked when the job ends, stands in for a long-lived PAT; gh keeps it out of the clone's git config.
+        env:
+          GH_TOKEN: "${{ steps.harness-token.outputs.token }}"
+          HARNESS_REF: "${{ vars.HARNESS_REF }}"
+          HARNESS_REPO: "${{ vars.HARNESS_REPO }}"
+        run: gh repo clone "$GITHUB_REPOSITORY_OWNER/$HARNESS_REPO" /tmp/maui-harness -- --depth 1 --branch "$HARNESS_REF"
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with: { global-json-file: /tmp/maui-harness/global.json }
+      - name: Build and install harness
+        working-directory: /tmp/maui-harness
+        run: |
+          dotnet pack src/Harness.Cli -c Release -o /tmp/harness-pkg
+          printf '%s' '<configuration><packageSources><clear/><add key="local" value="/tmp/harness-pkg"/></packageSources></configuration>' > /tmp/harness-nuget.config
+          dotnet tool install -g Phunkeler.MauiHarness --configfile /tmp/harness-nuget.config --add-source /tmp/harness-pkg
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { ref: "agent/ab-${{ needs.pick.outputs.workitem }}", path: head, fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        if: hashFiles('head/global.json') != ''
+        with: { global-json-file: head/global.json }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with: { name: "wi-${{ github.run_id }}", path: /tmp/wi }
+      - name: Start plan
+        working-directory: head
+        run: |
+          git config user.name harness-bot
+          git config user.email harness-bot@users.noreply.github.com
+          harness start-ci maintenance --target="$(jq -r '.fields["System.Title"]' /tmp/wi/wi.json)" --reference "workitem:$WI" --reference-file /tmp/wi/wi.json
+      - name: Run agent
+        working-directory: head
+        # Pinned with the CLI version below so a fix run is reproducible; bump both together.
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}"
+          ANTHROPIC_MODEL: claude-opus-5-5
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.304
+          claude -p "$(cat .harness/prompts/maintenance.md)" --dangerously-skip-permissions --max-turns 120 --output-format json > /tmp/agent.json || true
+      - name: Bundle
+        working-directory: head
+        run: git bundle create /tmp/agent.bundle "agent/ab-$WI"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: "bundle-${{ github.run_id }}"
+          path: |
+            /tmp/agent.bundle
+            /tmp/agent.json
+      # Separate artifact: a multi-path upload roots at the paths' common ancestor, which would move the bundle push reads.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: "agent-state-${{ github.run_id }}"
+          path: |
+            head/.harness/state/**
+            head/.harness/evidence/**
+  push:
+    needs: [pick, fix]
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    outputs: { sha: "${{ steps.push.outputs.sha }}" }
+    env:
+      WI: "${{ needs.pick.outputs.workitem }}"
+      DEFAULT_BRANCH: "${{ needs.pick.outputs.default_branch }}"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { ref: "${{ needs.pick.outputs.default_branch }}", fetch-depth: 0 }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with: { name: "bundle-${{ github.run_id }}", path: /tmp/bundle }
+      - id: push
+        run: |
+          git fetch /tmp/bundle/agent.bundle "agent/ab-$WI:refs/remotes/bundle/agent"
+          # A run where the agent committed nothing would otherwise post a failing check on the default branch's tip.
+          if git merge-base --is-ancestor refs/remotes/bundle/agent "origin/$DEFAULT_BRANCH"; then
+            echo "agent/ab-$WI has no commits beyond $DEFAULT_BRANCH; nothing to push" >&2
+            exit 1
+          fi
+          git push origin "refs/remotes/bundle/agent:refs/heads/agent/ab-$WI"
+          echo "sha=$(git rev-parse refs/remotes/bundle/agent)" >> "$GITHUB_OUTPUT"
+  verify:
+    needs: [pick, push]
+    runs-on: macos-26
+    timeout-minutes: 45
+    permissions: { contents: read }
+    env:
+      WI: "${{ needs.pick.outputs.workitem }}"
+      DEFAULT_BRANCH: "${{ needs.pick.outputs.default_branch }}"
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: harness-token
+        with:
+          client-id: "${{ vars.HARNESS_APP_CLIENT_ID }}"
+          private-key: "${{ secrets.HARNESS_APP_PRIVATE_KEY }}"
+          repositories: "${{ vars.HARNESS_REPO }}"
+          permission-contents: read
+      - name: Install harness
+        # The harness repo is private and owned by this repo's owner. A per-job installation token with contents: read on that
+        # one repo, revoked when the job ends, stands in for a long-lived PAT; gh keeps it out of the clone's git config.
+        env:
+          GH_TOKEN: "${{ steps.harness-token.outputs.token }}"
+          HARNESS_REF: "${{ vars.HARNESS_REF }}"
+          HARNESS_REPO: "${{ vars.HARNESS_REPO }}"
+        run: gh repo clone "$GITHUB_REPOSITORY_OWNER/$HARNESS_REPO" /tmp/maui-harness -- --depth 1 --branch "$HARNESS_REF"
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with: { global-json-file: /tmp/maui-harness/global.json }
+      - name: Build and install harness
+        working-directory: /tmp/maui-harness
+        run: |
+          dotnet pack src/Harness.Cli -c Release -o /tmp/harness-pkg
+          printf '%s' '<configuration><packageSources><clear/><add key="local" value="/tmp/harness-pkg"/></packageSources></configuration>' > /tmp/harness-nuget.config
+          dotnet tool install -g Phunkeler.MauiHarness --configfile /tmp/harness-nuget.config --add-source /tmp/harness-pkg
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { ref: "${{ needs.push.outputs.sha }}", path: head, fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        if: hashFiles('head/global.json') != ''
+        with: { global-json-file: head/global.json }
+      - name: Verify
+        working-directory: head
+        run: harness verify --ci --target "origin/$DEFAULT_BRANCH" --branch "agent/ab-$WI"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with: { name: "ci-evidence-${{ github.run_id }}", path: "head/.harness/evidence/**" }
+  publish:
+    needs: [pick, push, verify]
+    if: always() && needs.push.result == 'success'
+    runs-on: ubuntu-latest
+    permissions: { contents: read, pull-requests: write, checks: write }
+    env:
+      WI: "${{ needs.pick.outputs.workitem }}"
+      HEAD_SHA: "${{ needs.push.outputs.sha }}"
+      VERIFY_RESULT: "${{ needs.verify.result }}"
+      DEFAULT_BRANCH: "${{ needs.pick.outputs.default_branch }}"
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: harness-token
+        with:
+          client-id: "${{ vars.HARNESS_APP_CLIENT_ID }}"
+          private-key: "${{ secrets.HARNESS_APP_PRIVATE_KEY }}"
+          repositories: "${{ vars.HARNESS_REPO }}"
+          permission-contents: read
+      - name: Install harness
+        # The harness repo is private and owned by this repo's owner. A per-job installation token with contents: read on that
+        # one repo, revoked when the job ends, stands in for a long-lived PAT; gh keeps it out of the clone's git config.
+        env:
+          GH_TOKEN: "${{ steps.harness-token.outputs.token }}"
+          HARNESS_REF: "${{ vars.HARNESS_REF }}"
+          HARNESS_REPO: "${{ vars.HARNESS_REPO }}"
+        run: gh repo clone "$GITHUB_REPOSITORY_OWNER/$HARNESS_REPO" /tmp/maui-harness -- --depth 1 --branch "$HARNESS_REF"
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with: { global-json-file: /tmp/maui-harness/global.json }
+      - name: Build and install harness
+        working-directory: /tmp/maui-harness
+        run: |
+          dotnet pack src/Harness.Cli -c Release -o /tmp/harness-pkg
+          printf '%s' '<configuration><packageSources><clear/><add key="local" value="/tmp/harness-pkg"/></packageSources></configuration>' > /tmp/harness-nuget.config
+          dotnet tool install -g Phunkeler.MauiHarness --configfile /tmp/harness-nuget.config --add-source /tmp/harness-pkg
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { ref: "${{ needs.push.outputs.sha }}", path: head, fetch-depth: 0, persist-credentials: false }
+      - name: Post check and open PR
+        working-directory: head
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          git checkout -B "agent/ab-$WI"
+          status=$(harness status | tr -d '`' || true)
+          [ -n "$status" ] || status="harness status failed"
+          conclusion=failure
+          [ "$VERIFY_RESULT" = success ] && conclusion=success
+          gh api "repos/${GITHUB_REPOSITORY}/check-runs" -f name="harness verify" -f head_sha="$HEAD_SHA" \
+            -f status=completed -f conclusion="$conclusion" -f "output[title]=harness verify" -f "output[summary]=$status"
+          [ "$conclusion" = success ] || exit 0
+          # AB# on its own line links the item, and merging resolves it, so the poll never picks it again.
+          body=$(printf 'Fixes AB#%s\n\n```\n%s\n```\n\nEvidence: .harness/evidence/' "$WI" "$status")
+          gh pr create --repo "$GITHUB_REPOSITORY" --base "$DEFAULT_BRANCH" --head "agent/ab-$WI" --title "AB#$WI $(harness status --title)" --body "$body"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with: { name: harness-run, path: "head/.harness/evidence/**" }
