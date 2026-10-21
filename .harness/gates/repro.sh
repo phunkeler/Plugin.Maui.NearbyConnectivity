@@ -25,6 +25,7 @@ while IFS= read -r f; do
       mkdir -p "$tmp/base/$(dirname "$f")"
       cp "$f" "$tmp/base/$f"
       ;;
+    *) ;;
   esac
 done <"$HARNESS_CHANGED"
 mkdir -p "$tmp/base/$(dirname "$script")"
