@@ -12,8 +12,8 @@
 
   <!-- Library -->
   <ItemGroup>
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Maui.Core" Version="10.0.110" />
     <PackageVersion Include="Xamarin.GooglePlayServices.Nearby" Version="119.3.0.7" />
   </ItemGroup>
@@ -22,7 +22,7 @@
   <ItemGroup>
     <PackageVersion Include="CommunityToolkit.Maui" Version="14.0.1" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.1" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.110" />
     <PackageVersion Include="Microsoft.Maui.DevFlow.Agent" Version="0.1.0-preview.12.26421.1" />
     <PackageVersion Include="Plugin.Maui.BottomSheet" Version="10.0.6" />
@@ -49,7 +49,7 @@
   <!-- UI Tests -->
   <ItemGroup>
     <PackageVersion Include="Appium.WebDriver" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
   </ItemGroup>
