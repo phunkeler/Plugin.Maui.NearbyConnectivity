@@ -14,7 +14,7 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Maui.Core" Version="10.0.110" />
+    <PackageVersion Include="Microsoft.Maui.Core" Version="10.0.120" />
     <PackageVersion Include="Xamarin.GooglePlayServices.Nearby" Version="119.3.0.7" />
   </ItemGroup>
 
@@ -23,7 +23,7 @@
     <PackageVersion Include="CommunityToolkit.Maui" Version="14.0.1" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.110" />
+    <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.120" />
     <PackageVersion Include="Microsoft.Maui.DevFlow.Agent" Version="0.1.0-preview.12.26421.1" />
     <PackageVersion Include="Plugin.Maui.BottomSheet" Version="10.0.6" />
   </ItemGroup>
