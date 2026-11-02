@@ -14,7 +14,8 @@
 
 .PARAMETER Coverage
     Also collect coverage via dotnet-coverage using test/coverage.runsettings, in the `-f xml`
-    format the Sonar scanner and ReportGenerator both read.
+    format the Sonar scanner and ReportGenerator both read. The library is statically
+    instrumented, which works on every platform; the run fails if the report has no modules.
 
 .PARAMETER CoveragePath
     Where to write the coverage XML. Defaults to artifacts/coverage.xml. CI passes an explicit path
@@ -106,7 +107,24 @@ function Invoke-UnitTests {
             New-Item -ItemType Directory -Force -Path $coverageDir | Out-Null
         }
 
-        Invoke-Native dotnet @('dotnet-coverage', 'collect', $inner, '--settings', $RunSettings, '-f', 'xml', '-o', $CoveragePath)
+        # Static instrumentation, not the default dynamic profiler: the profiler is unsupported on
+        # macOS arm64 (the CI runner), where it fails to attach and dotnet-coverage exits 0 with an
+        # empty report. Statically instrumenting the library copy next to the runner works on
+        # every platform. The runsettings ModulePaths filter still applies.
+        $libraryDll = Join-Path (Split-Path -Parent $runner) 'Plugin.Maui.NearbyConnectivity.dll'
+        if (-not (Test-Path $libraryDll)) {
+            throw "Library not found at $libraryDll -- nothing to instrument."
+        }
+
+        Invoke-Native dotnet @('dotnet-coverage', 'collect', $inner, '--settings', $RunSettings, '--include-files', $libraryDll, '-f', 'xml', '-o', $CoveragePath)
+
+        # dotnet-coverage exits 0 and writes a report with no modules when it collected nothing.
+        # Sonar shows that as 0% and the ReportGenerator threshold has nothing to compare, so this
+        # is the only place the empty report fails the run.
+        [xml]$report = Get-Content $CoveragePath
+        if ((Get-CoverageModuleCount -Report $report) -le 0) {
+            throw "Coverage report at $CoveragePath contains no modules -- the instrumentation did not run."
+        }
         Write-Host "Coverage: $CoveragePath"
     }
     else {
