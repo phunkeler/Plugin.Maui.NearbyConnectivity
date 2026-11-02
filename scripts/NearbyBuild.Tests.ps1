@@ -48,6 +48,28 @@ Describe 'Get-TrxSummary' {
     }
 }
 
+Describe 'Get-CoverageModuleCount' {
+    It 'counts the instrumented modules' {
+        [xml]$report = @'
+<results><modules>
+<module name="plugin.maui.nearbyconnectivity.dll" blocks_covered="10" blocks_not_covered="2" />
+<module name="other.dll" blocks_covered="1" blocks_not_covered="0" />
+</modules></results>
+'@
+        Get-CoverageModuleCount -Report $report | Should -Be 2
+    }
+
+    It 'returns zero when the profiler never attached and the modules element is empty' {
+        [xml]$report = '<results><modules /></results>'
+        Get-CoverageModuleCount -Report $report | Should -Be 0
+    }
+
+    It 'returns zero when the report has no modules element at all' {
+        [xml]$report = '<results />'
+        Get-CoverageModuleCount -Report $report | Should -Be 0
+    }
+}
+
 Describe 'Select-NoisyLogLine' {
     It 'keeps warn and above, drops info' {
         $stdout = @(

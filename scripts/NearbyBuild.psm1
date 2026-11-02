@@ -49,6 +49,32 @@ function Get-TrxSummary {
     }
 }
 
+function Get-CoverageModuleCount {
+    <#
+    .SYNOPSIS
+        Counts the modules in a dotnet-coverage XML report.
+
+    .DESCRIPTION
+        When the coverage profiler fails to attach (dynamic instrumentation is unsupported on
+        macOS arm64, for one), dotnet-coverage still exits 0 and writes a well-formed report with
+        an empty <modules /> element. Sonar reads that as 0% and the ReportGenerator threshold
+        has nothing to compare, so neither gate fires. Zero modules is the signal that no coverage
+        was collected at all.
+
+    .PARAMETER Report
+        The parsed report ([xml]), so this stays testable without touching disk.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][xml]$Report)
+
+    # Under StrictMode a missing element or an empty one with no children throws on access, so
+    # probe each level before reading it.
+    if (-not $Report.results -or -not $Report.results.PSObject.Properties['modules']) { return 0 }
+    $modules = $Report.results.modules
+    if (-not $modules -or -not $modules.PSObject.Properties['module']) { return 0 }
+    @($modules.module).Count
+}
+
 function Select-NoisyLogLine {
     <#
     .SYNOPSIS
@@ -170,4 +196,4 @@ function ConvertTo-ColorsXaml {
     ($lines -join "`n") + "`n"
 }
 
-Export-ModuleMember -Function Get-TrxSummary, Select-NoisyLogLine, ConvertTo-ColorsXaml
+Export-ModuleMember -Function Get-TrxSummary, Get-CoverageModuleCount, Select-NoisyLogLine, ConvertTo-ColorsXaml
