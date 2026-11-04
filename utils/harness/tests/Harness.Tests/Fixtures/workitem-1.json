@@ -1,0 +1,97 @@
+{
+  "_links": {
+    "fields": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/fields"
+    },
+    "html": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_workitems/edit/1"
+    },
+    "self": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/1"
+    },
+    "workItemComments": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/1/comments"
+    },
+    "workItemRevisions": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/1/revisions"
+    },
+    "workItemType": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItemTypes/User%20Story"
+    },
+    "workItemUpdates": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/1/updates"
+    }
+  },
+  "commentVersionRef": {
+    "commentId": 18490232,
+    "url": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/1/comments/18490232/versions/1",
+    "version": 1
+  },
+  "fields": {
+    "Microsoft.VSTS.Common.AcceptanceCriteria": "<ul><li>Peers appear in the list within 5 s of advertising. </li><li>The list empties when the peer stops advertising. </li><li>A tapped peer opens its detail page. </li> </ul>",
+    "Microsoft.VSTS.Common.Priority": 2,
+    "Microsoft.VSTS.Common.StateChangeDate": "2026-11-04T04:51:02.88Z",
+    "Microsoft.VSTS.Common.ValueArea": "Business",
+    "System.AreaPath": "<project>",
+    "System.BoardColumn": "New",
+    "System.BoardColumnDone": false,
+    "System.ChangedBy": {
+      "_links": {
+        "avatar": {
+          "href": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "descriptor": "aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "displayName": "Jane Doe",
+      "id": "00000000-0000-0000-0000-000000000001",
+      "imageUrl": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "uniqueName": "test@example.com",
+      "url": "https://spsprodcus7.vssps.visualstudio.com/A00000000-0000-0000-0000-000000000002/_apis/Identities/00000000-0000-0000-0000-000000000001"
+    },
+    "System.ChangedDate": "2026-11-04T04:53:04.167Z",
+    "System.CommentCount": 2,
+    "System.CreatedBy": {
+      "_links": {
+        "avatar": {
+          "href": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "descriptor": "aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "displayName": "Jane Doe",
+      "id": "00000000-0000-0000-0000-000000000001",
+      "imageUrl": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "uniqueName": "test@example.com",
+      "url": "https://spsprodcus7.vssps.visualstudio.com/A00000000-0000-0000-0000-000000000002/_apis/Identities/00000000-0000-0000-0000-000000000001"
+    },
+    "System.CreatedDate": "2026-11-04T04:51:02.88Z",
+    "System.Description": "<div>As a user I see nearby peers in a list. </div><ul><li>Peers appear in the list within 5 s of advertising. </li><li>The list empties when the peer stops advertising. </li><li>A tapped peer opens its detail page. </li> </ul>",
+    "System.History": "<div>[harness] draft-test-case result draft-test-case/1/1 done testCase:2@1</div><pre>{\n  &quot;schema&quot;: &quot;harness.result/v1&quot;,\n  &quot;taskId&quot;: &quot;draft-test-case/1/1&quot;,\n  &quot;status&quot;: &quot;done&quot;,\n  &quot;reason&quot;: null,\n  &quot;agent&quot;: {\n    &quot;kind&quot;: &quot;claude-code&quot;,\n    &quot;identity&quot;: &quot;test@example.com&quot;\n  },\n  &quot;records&quot;: {\n    &quot;testCase&quot;: {\n      &quot;id&quot;: 2,\n      &quot;rev&quot;: 1\n    }\n  },\n  &quot;questions&quot;: [\n    &quot;AC1: which advertising device or emulator is the peer in the test, and is the 5 s measured from the first advertisement?&quot;\n  ],\n  &quot;finishedAt&quot;: &quot;2026-11-04T04:53:03Z&quot;\n}</pre><div>Draft Test Case 2 for this story: 3 steps covering 3 acceptance criteria. Tagged AI-generated, linked with Tested By, left in Design. QA: please read the steps and move it to Ready or Closed.</div><div>For QA: names in the steps that no criterion uses: none. Criteria changed since the task: no. Open questions: AC1: which advertising device or emulator is the peer in the test, and is the 5 s measured from the first advertisement? Do the steps test what each criterion means, on the screens they name?</div>",
+    "System.IterationPath": "<project>",
+    "System.Reason": "New",
+    "System.State": "New",
+    "System.Tags": "needs-qa",
+    "System.TeamProject": "<project>",
+    "System.Title": "Show nearby peers in a list",
+    "System.WorkItemType": "User Story",
+    "WEF_001DBA7B05324AD59394B6D10FF449CC_Kanban.Column": "New",
+    "WEF_001DBA7B05324AD59394B6D10FF449CC_Kanban.Column.Done": false
+  },
+  "id": 1,
+  "multilineFieldsFormat": {
+    "Microsoft.VSTS.Common.AcceptanceCriteria": "html",
+    "System.Description": "html",
+    "System.History": "html"
+  },
+  "relations": [
+    {
+      "attributes": {
+        "isLocked": false,
+        "name": "Tested By"
+      },
+      "rel": "Microsoft.VSTS.Common.TestedBy-Forward",
+      "url": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/2"
+    }
+  ],
+  "rev": 3,
+  "url": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/1"
+}

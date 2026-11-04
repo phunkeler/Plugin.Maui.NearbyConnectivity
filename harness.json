@@ -1,0 +1,6 @@
+// Overrides only: every key, its default and what it means are in utils/harness/README.md.
+{
+  "version": 1,
+  "boards": { "organization": "https://dev.azure.com/phunkeler-private", "project": "Open Source" },
+  "testImpact": { "testCaseIdPattern": "(?<![0-9A-Za-z])TC[_-]?([0-9]+)(?![0-9])" }
+}

@@ -1,0 +1,111 @@
+{
+  "_links": {
+    "fields": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/fields"
+    },
+    "html": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_workitems/edit/2"
+    },
+    "self": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/2"
+    },
+    "workItemComments": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/2/comments"
+    },
+    "workItemRevisions": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/2/revisions"
+    },
+    "workItemType": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItemTypes/Test%20Case"
+    },
+    "workItemUpdates": {
+      "href": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/2/updates"
+    }
+  },
+  "fields": {
+    "Microsoft.VSTS.Common.ActivatedBy": {
+      "_links": {
+        "avatar": {
+          "href": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "descriptor": "aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "displayName": "Jane Doe",
+      "id": "00000000-0000-0000-0000-000000000001",
+      "imageUrl": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "uniqueName": "test@example.com",
+      "url": "https://spsprodcus7.vssps.visualstudio.com/A00000000-0000-0000-0000-000000000002/_apis/Identities/00000000-0000-0000-0000-000000000001"
+    },
+    "Microsoft.VSTS.Common.ActivatedDate": "2026-11-04T04:51:55.017Z",
+    "Microsoft.VSTS.Common.Priority": 2,
+    "Microsoft.VSTS.Common.StateChangeDate": "2026-11-04T05:24:30.84Z",
+    "Microsoft.VSTS.TCM.AutomationStatus": "Not Automated",
+    "Microsoft.VSTS.TCM.Steps": "<steps id=\"0\" last=\"3\"><step id=\"1\" type=\"ValidateStep\"><parameterizedString isformatted=\"true\">On a second device, start advertising. Watch the &amp;quot;list&amp;quot; on the first device. [AC1]</parameterizedString><parameterizedString isformatted=\"true\">The advertising device appears in the &amp;quot;list&amp;quot; within 5 s of advertising. [AC1]</parameterizedString><description /></step><step id=\"2\" type=\"ValidateStep\"><parameterizedString isformatted=\"true\">On the second device, stop advertising. Watch the &amp;quot;list&amp;quot; on the first device. [AC2]</parameterizedString><parameterizedString isformatted=\"true\">The &amp;quot;list&amp;quot; is empty. [AC2]</parameterizedString><description /></step><step id=\"3\" type=\"ValidateStep\"><parameterizedString isformatted=\"true\">Start advertising on the second device again. Tap the peer in the &amp;quot;list&amp;quot;. [AC3]</parameterizedString><parameterizedString isformatted=\"true\">The &amp;quot;detail page&amp;quot; of the tapped peer opens. [AC3]</parameterizedString><description /></step></steps>",
+    "System.AreaPath": "<project>",
+    "System.AssignedTo": {
+      "_links": {
+        "avatar": {
+          "href": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "descriptor": "aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "displayName": "Jane Doe",
+      "id": "00000000-0000-0000-0000-000000000001",
+      "imageUrl": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "uniqueName": "test@example.com",
+      "url": "https://spsprodcus7.vssps.visualstudio.com/A00000000-0000-0000-0000-000000000002/_apis/Identities/00000000-0000-0000-0000-000000000001"
+    },
+    "System.ChangedBy": {
+      "_links": {
+        "avatar": {
+          "href": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "descriptor": "aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "displayName": "Jane Doe",
+      "id": "00000000-0000-0000-0000-000000000001",
+      "imageUrl": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "uniqueName": "test@example.com",
+      "url": "https://spsprodcus7.vssps.visualstudio.com/A00000000-0000-0000-0000-000000000002/_apis/Identities/00000000-0000-0000-0000-000000000001"
+    },
+    "System.ChangedDate": "2026-11-04T06:47:39.013Z",
+    "System.CommentCount": 0,
+    "System.CreatedBy": {
+      "_links": {
+        "avatar": {
+          "href": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "descriptor": "aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "displayName": "Jane Doe",
+      "id": "00000000-0000-0000-0000-000000000001",
+      "imageUrl": "https://dev.azure.com/fabrikam/_apis/GraphProfile/MemberAvatars/aad.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "uniqueName": "test@example.com",
+      "url": "https://spsprodcus7.vssps.visualstudio.com/A00000000-0000-0000-0000-000000000002/_apis/Identities/00000000-0000-0000-0000-000000000001"
+    },
+    "System.CreatedDate": "2026-11-04T04:51:55.017Z",
+    "System.IterationPath": "<project>",
+    "System.Reason": "Completed",
+    "System.State": "Ready",
+    "System.Tags": "AI-Drafted",
+    "System.TeamProject": "<project>",
+    "System.Title": "Show nearby peers in a list",
+    "System.WorkItemType": "Test Case"
+  },
+  "id": 2,
+  "multilineFieldsFormat": {
+    "Microsoft.VSTS.TCM.Steps": "html"
+  },
+  "relations": [
+    {
+      "attributes": {
+        "isLocked": false,
+        "name": "Tests"
+      },
+      "rel": "Microsoft.VSTS.Common.TestedBy-Reverse",
+      "url": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/1"
+    }
+  ],
+  "rev": 4,
+  "url": "https://dev.azure.com/fabrikam/e3a4728a-ec06-4588-be63-c010e9d975d4/_apis/wit/workItems/2"
+}

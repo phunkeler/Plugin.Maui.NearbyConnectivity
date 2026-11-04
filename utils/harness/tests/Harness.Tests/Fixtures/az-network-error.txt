@@ -1,0 +1,5 @@
+ERROR: The command failed with an unexpected error. Here is the traceback:
+ERROR: HTTPSConnectionPool(host='nonexistent-host.invalid', port=443): the test-automation QA retries exceeded with url: /x/_apis/wit/workitems/1?api-version=7.1 (Caused by NameResolutionError("HTTPSConnection(host='nonexistent-host.invalid', port=443): Failed to resolve 'nonexistent-host.invalid' ([Errno 8] nodename nor servname provided, or not known)"))
+Traceback (most recent call last):
+  ...
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='nonexistent-host.invalid', port=443): the test-automation QA retries exceeded with url: /x/_apis/wit/workitems/1?api-version=7.1 (Caused by NameResolutionError("HTTPSConnection(host='nonexistent-host.invalid', port=443): Failed to resolve 'nonexistent-host.invalid' ([Errno 8] nodename nor servname provided, or not known)"))

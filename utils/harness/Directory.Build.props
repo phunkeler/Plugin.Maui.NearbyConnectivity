@@ -1,0 +1,32 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>latest</LangVersion>
+    <AnalysisLevel Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Every comparison and number is ordinal or invariant already. No ICU library is needed on the machine, and
+         the runner's locale changes nothing the harness prints. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- IDE0005 (unnecessary usings) only runs on build when a documentation file is generated. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- A CI build from a git checkout records paths from the repository root, not the agent's folder, so the same
+       commit builds the same binaries. The scope workflow builds a copy outside git, where this changes nothing. -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true' or '$(TF_BUILD)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- The library takes every analyzer rule. -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Harness'">
+    <AnalysisLevel>latest-all</AnalysisLevel>
+  </PropertyGroup>
+
+  <!-- Test methods and fixtures are not documented API. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+</Project>

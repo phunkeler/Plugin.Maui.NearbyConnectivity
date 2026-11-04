@@ -1,0 +1,78 @@
+name: harness scope
+# Every pull request gets one sticky "Change scope" comment, edited in place on each push. No pull request code is
+# built or run: the harness is checked out from the base commit into .harness-base/, copied out of the workspace so
+# no global.json or nuget.config from the pull request applies, built there with its own SDK pin, and then run over
+# the pull request's merge checkout, where it only reads git and the GitHub API. GITHUB_TOKEN is enough; no secret.
+# Azure Boards is not read here until stage 2 (utils/harness/docs/azure-devops.md), so the Chain row says
+# "Boards not read".
+permissions: {}
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+concurrency:
+  group: harness-scope-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write # the sticky comment
+    env:
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { ref: "${{ github.event.pull_request.base.sha }}", path: .harness-base, persist-credentials: false }
+      # The pull request that adds the harness has none on its base yet, so it gets no comment; the next one does.
+      - name: Harness on the base
+        id: base
+        run: |
+          if [ -f .harness-base/utils/harness/src/Harness.Cli/Harness.Cli.csproj ]; then
+            cp -R .harness-base/utils/harness "$RUNNER_TEMP/harness"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The base branch has no utils/harness yet; nothing to report." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        if: steps.base.outputs.present == 'true'
+        with: { global-json-file: .harness-base/utils/harness/global.json }
+      - name: Build harness
+        if: steps.base.outputs.present == 'true'
+        working-directory: ${{ runner.temp }}/harness
+        run: dotnet build src/Harness.Cli -c Release --nologo
+      # Two runs over the same commit: one for the comment, one for the JSON the measures read. Both only read.
+      - name: Change scope report
+        if: steps.base.outputs.present == 'true'
+        # The Boards organization and project come from repository variables when set, so a harness.json on any
+        # branch cannot point the Boards token at another host. Unset variables are empty and harness.json applies.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ADO_ORG: ${{ vars.ADO_ORG }}
+          ADO_PROJECT: ${{ vars.ADO_PROJECT }}
+        run: |
+          harness="dotnet $RUNNER_TEMP/harness/src/Harness.Cli/bin/Release/net10.0/Harness.Cli.dll"
+          $harness scope "#$PR" > "$RUNNER_TEMP/scope.md"
+          $harness scope "#$PR" --json > "$RUNNER_TEMP/scope.json"
+          cat "$RUNNER_TEMP/scope.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Sticky comment
+        if: steps.base.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Only this workflow's own comment with the marker on its last line is edited; a pasted marker is not.
+        run: |
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | test("<!-- harness-scope -->\\s*$"))) | .id' \
+            | head -n 1)
+          if [ -n "$id" ]; then
+            jq -n --rawfile body "$RUNNER_TEMP/scope.md" '{body: $body}' \
+              | gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" --input - > /dev/null
+          else
+            gh pr comment "$PR" --body-file "$RUNNER_TEMP/scope.md"
+          fi
+      # The JSON is what the measures read; kept even when a step above failed.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && steps.base.outputs.present == 'true'
+        with: { name: "harness-scope-${{ github.event.pull_request.number }}-${{ github.run_attempt }}", path: "${{ runner.temp }}/scope.json", retention-days: 30, if-no-files-found: ignore }
