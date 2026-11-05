@@ -4,6 +4,7 @@
     x:Name="this">
     <Border
         Background="{StaticResource AccentConnections}"
+        SemanticProperties.Description="{Binding Count, Source={x:Reference this}, StringFormat='{0} devices connected'}"
         StrokeShape="RoundRectangle 30"
         Stroke="Transparent"
         Padding="15,6"
