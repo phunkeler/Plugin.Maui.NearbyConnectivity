@@ -11,9 +11,9 @@ fails the pull request.
 | Row | What it says |
 |---|---|
 | Pull request | The number, the head commit, the base branch and the author. |
-| Work item link | The `AB#` work items the pull request *description* names, or `none: no AB# in the description`. The title does not count: Azure Boards links a work item from the description or a commit only. |
+| Work item link | The `AB#` work items the pull request *description* names, or `none: no AB# in the description`. The title does not count: Azure Boards links a work item from the description or a commit only. The row reads the text only: Boards makes the link itself, and only for a repository on the project's GitHub connection (**Project settings > GitHub connections**). When the link works, the story shows the pull request under **Development**. |
 | Platform reach | Android, iOS or shared, from the paths (`Platforms/Android`, `*.iOS.cs` and so on) and from `#if ANDROID` / `#if IOS` in the changed files, with the device runs that follow: "needs an Android device run", "shared code only". |
-| Test Cases | Each Test Case id the changed test files carry, and the test methods that carry it, such as `TC 1201: SignOffTests.TC1201_SignsOff`. A method carries an id on its declaration line or on an attribute line up to five lines above it. When no method does, a file whose path carries the id is listed as `<file> (file name)`, else the file whose text does. |
+| Test Cases | Each Test Case id the changed test files carry, and the test methods that carry it, such as `TC 1201: SignOffTests.TC1201_SignsOff`. With the Boards organization and project set, each id links to its page in Azure Boards. The link is built from the id, not read from Boards, so it does not show that the Test Case exists; the Chain row does. A method carries an id on its declaration line or on an attribute line up to five lines above it. When no method does, a file whose path carries the id is listed as `<file> (file name)`, else the file whose text does. |
 | Chain | One line per work item in the description: the story, its Test Cases in Azure Boards (Tested By links) with their state and tags, the pull request, and the tests that carry each Test Case id, marked `(changed)` when the pull request changes them and `(existing)` when they are already on its head. `Boards not read:` and the reason when Boards cannot be read. |
 
 For a Test Case no changed test carries, the Chain row searches the test files on the pull request's head (the
@@ -78,7 +78,7 @@ value: would two teams adopting the harness legitimately want it different?
 | Kind | Where it lives | Examples |
 |---|---|---|
 | **Policy**: yes, teams differ | `harness.json`, as an override with the default in code | Test globs, the Test Case id pattern, platform globs, source extensions, the search limit, the Boards organization and project |
-| **Contract**: no, readers depend on it | Fixed in code and written down here | The `Change scope` heading and its comment marker, the `AB#` work item syntax, the Tested By relation, the `Test Case` type, the exit codes, the `ADO_ORG` and `ADO_PROJECT` names, the Azure DevOps hosts, the fixed limits above |
+| **Contract**: no, readers depend on it | Fixed in code and written down here | The `Change scope` heading and its comment marker, the `AB#` work item syntax, the Tested By relation, the `Test Case` type, the exit codes, the `ADO_ORG` and `ADO_PROJECT` names, the Azure DevOps hosts, the work item page address (`<organization>/<project>/_workitems/edit/<id>`), the fixed limits above |
 | **Environment**: the machine already knows | Detected at run time, never configured | The remote the base branch is fetched from, the operating system (`az` or `az.cmd`), the runner, the CI host |
 
 So a new team setting changes `harness.json` and this table only. A contract value changes only with a `version`

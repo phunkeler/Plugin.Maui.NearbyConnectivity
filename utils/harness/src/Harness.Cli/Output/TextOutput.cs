@@ -21,7 +21,8 @@ static class TextOutput
         return markdown.Append('\n').Append(ScopeText.Marker).Append('\n').ToString();
     }
 
-    // One row; several lines become one cell joined by <br>, the only markup a cell ever holds.
+    // One row; several lines become one cell joined by <br>. The only other markup a cell holds is a Test Case link,
+    // whose address the harness built.
     static string Cell(string label, IEnumerable<string> lines) =>
         $"| {label} | {string.Join("<br>", lines.Select(Escape))} |\n";
 

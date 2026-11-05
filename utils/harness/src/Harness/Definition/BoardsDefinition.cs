@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace Harness;
 
@@ -47,6 +48,18 @@ sealed record BoardsDefinition(string? Organization, string? Project)
         && Uri.TryCreate(organization, UriKind.Absolute, out var uri)
         && uri.Scheme == Uri.UriSchemeHttps
         && AllowedHosts.Any(host => ("." + uri.Host).EndsWith("." + host, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Builds the address of a work item's page in Azure Boards. Reads nothing.</summary>
+    /// <param name="id">The work item id.</param>
+    /// <returns>
+    /// The address; <see langword="null"/> when the definition is not complete or its organization is not an
+    /// organization URL, such as a placeholder. The work item may not exist: nothing here checks it.
+    /// </returns>
+    public string? WorkItemUrl(int id) => IsComplete && IsOrganizationUrl(Organization)
+        ? string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Organization.TrimEnd('/')}/{Uri.EscapeDataString(Project)}/_workitems/edit/{id}")
+        : null;
 
     static string? Set(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

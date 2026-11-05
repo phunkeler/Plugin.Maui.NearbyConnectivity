@@ -4,6 +4,25 @@ public sealed class BoardsDefinitionTests
 {
     static readonly BoardsDefinition s_configured = new("https://dev.azure.com/fabrikam", "Mobile App");
 
+    [Theory]
+    [InlineData("https://dev.azure.com/fabrikam", "Field Service", "https://dev.azure.com/fabrikam/Field%20Service/_workitems/edit/7")]
+    [InlineData("https://dev.azure.com/fabrikam/", "Fiber", "https://dev.azure.com/fabrikam/Fiber/_workitems/edit/7")]
+    [InlineData("https://fabrikam.visualstudio.com", "Fiber", "https://fabrikam.visualstudio.com/Fiber/_workitems/edit/7")]
+    [InlineData("https://boards.example/fabrikam", "Fiber", null)]
+    [InlineData(null, "Fiber", null)]
+    public void WorkItemUrl_Settings_LinksOnlyOnAnAzureDevOpsHost(
+        string? organization, string? project, string? expected)
+    {
+        // Arrange
+        var boards = new BoardsDefinition(organization, project);
+
+        // Act
+        var url = boards.WorkItemUrl(7);
+
+        // Assert
+        Assert.Equal(expected, url);
+    }
+
     [Fact]
     public void Resolve_NothingInTheEnvironment_KeepsTheConfiguredKeys()
     {

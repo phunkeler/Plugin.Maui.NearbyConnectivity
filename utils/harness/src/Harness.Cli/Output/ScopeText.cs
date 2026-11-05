@@ -49,14 +49,23 @@ static class ScopeText
     /// <param name="report">The report.</param>
     /// <returns>
     /// Such as <c>TC 1201: SignOffTests.TC1201_SignsOff; TC 1240: tests/TimeoutTests.cs</c>; <c>none</c> when no
-    /// changed test carries an id.
+    /// changed test carries an id. Each id links to its page in Azure Boards when the report has valid Boards
+    /// settings. The link does not show that the Test Case exists: the Chain row reads Boards, this row does not.
     /// </returns>
     public static string TestCases(ScopeReport report)
     {
         var impact = report.TestImpact;
         return impact.TestCaseIds.IsEmpty
             ? "none"
-            : string.Join("; ", impact.TestCaseIds.Select(id => $"TC {Number(id)}: {Tests(impact.TestsFor(id))}"));
+            : string.Join(
+                "; ",
+                impact.TestCaseIds.Select(id => $"{TestCaseLabel(report, id)}: {Tests(impact.TestsFor(id))}"));
+    }
+
+    static string TestCaseLabel(ScopeReport report, int id)
+    {
+        var label = "TC " + Number(id);
+        return report.Boards.WorkItemUrl(id) is { } url ? $"[{label}]({url})" : label;
     }
 
     /// <summary>The Chain row: one line per work item the description names.</summary>

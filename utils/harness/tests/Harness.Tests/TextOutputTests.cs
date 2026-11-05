@@ -35,6 +35,37 @@ public sealed class TextOutputTests
     }
 
     [Fact]
+    public void Format_BoardsSettings_LinksEachTestCase()
+    {
+        // Arrange
+        var report = FullScope with { Boards = new("https://dev.azure.com/fabrikam", "Field Service") };
+
+        // Act
+        var markdown = TextOutput.Format(report);
+
+        // Assert
+        Assert.Contains(
+            "| Test Cases | [TC 1240](https://dev.azure.com/fabrikam/Field%20Service/_workitems/edit/1240): "
+                + "TimeoutTests.Times_out_TC1240 |",
+            markdown,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Format_PlaceholderBoardsSettings_PrintsThePlainId()
+    {
+        // Arrange
+        var report = FullScope with { Boards = new("https://dev.azure.com/<org>", "<project>") };
+
+        // Act
+        var markdown = TextOutput.Format(report);
+
+        // Assert
+        Assert.Contains(
+            "| Test Cases | TC 1240: TimeoutTests.Times_out_TC1240 |", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Format_NoWorkItem_SaysTheLinkIsMissingAndTheChainIsEmpty()
     {
         // Arrange

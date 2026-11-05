@@ -147,6 +147,32 @@ public sealed class CliTests : IDisposable
     }
 
     [Fact]
+    public async Task RunAsync_ScopeWithBoardsInTheEnvironment_LinksTheTestCase()
+    {
+        // Arrange
+        var head = WriteBranchWithTestCase();
+        var gitHubRecords = GitHubRecords();
+        gitHubRecords.ReadReturns(PullRequestNode.Create(number: 1, head: head));
+        using var services = new ServiceCollection()
+            .AddHarness(options => options.WorkingDirectory = _repo.Root)
+            .AddSingleton(gitHubRecords)
+            .AddSingleton(new BoardsEnvironment(Organization: "https://dev.azure.com/fabrikam", Project: "Fiber"))
+            .AddSingleton(WorkItemsFactory(WorkItems()))
+            .BuildServiceProvider();
+        var stdout = new StringWriter();
+
+        // Act
+        await Program.RunAsync(
+            ["scope", "#1"], stdout, new StringWriter(), _ => services, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Contains(
+            "[TC 1201](https://dev.azure.com/fabrikam/Fiber/_workitems/edit/1201)",
+            stdout.ToString(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task RunAsync_ScopeJson_ReportsTheDurationAndTheToolCalls()
     {
         // Arrange
@@ -317,6 +343,17 @@ public sealed class CliTests : IDisposable
         _repo.AddOrigin();
         _repo.Git("checkout -q -b work");
         _repo.Write("tests/ATests.cs", "// TC1201\n");
+        return _repo.Commit("work");
+    }
+
+    // WriteBranch with the changed test named for Test Case 1201, a method that carries the id.
+    string WriteBranchWithTestCase()
+    {
+        _repo.Write("src/A.cs", "one\n");
+        _repo.Commit("base");
+        _repo.AddOrigin();
+        _repo.Git("checkout -q -b work");
+        _repo.Write("tests/ATests.cs", "class ATests\n{\n    public void Opens_TC1201()\n    {\n    }\n}\n");
         return _repo.Commit("work");
     }
 

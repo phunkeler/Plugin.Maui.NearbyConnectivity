@@ -71,10 +71,11 @@ sealed class Change(
                 mergeBase,
                 pullRequest.HeadSha,
                 cancellationToken);
+        var boards = BoardsDefinition.Resolve(definition?.Boards, boardsEnvironment);
         var chain = await chainBuilder
             .BuildAsync(
                 ScopeReport.WorkItemsIn(pullRequest.Body),
-                BoardsDefinition.Resolve(definition?.Boards, boardsEnvironment),
+                boards,
                 impact.TestImpact,
                 testImpact,
                 pullRequest.HeadSha,
@@ -84,7 +85,7 @@ sealed class Change(
             logger.BoardsNotRead(reason);
         }
 
-        return ScopeReport.Build(pullRequest, impact.TestImpact, impact.PlatformReach, chain);
+        return ScopeReport.Build(pullRequest, impact.TestImpact, impact.PlatformReach, chain) with { Boards = boards };
     }
 
     // The pull request, its base as fetched from a remote, and the definition on that base; null when the base has

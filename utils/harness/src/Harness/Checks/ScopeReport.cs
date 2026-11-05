@@ -31,6 +31,9 @@ sealed partial record ScopeReport(
     PlatformReach PlatformReach,
     Chain Chain)
 {
+    /// <summary>Where the Azure Boards work items live, for links; empty when the run has no settings.</summary>
+    public BoardsDefinition Boards { get; init; } = new(null, null);
+
     /// <summary>What the run that built the report cost. Not part of the report's facts: it differs on every run.</summary>
     public RunStats Run { get; init; } = RunStats.None;
 
