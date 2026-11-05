@@ -23,6 +23,13 @@ sealed partial class AzWorkItems : IWorkItems
     // The Azure DevOps application id: the audience of the token az rest gets.
     const string AzureDevOpsResource = "499b84ac-1321-427f-aa17-267ca6975798";
 
+    // What az writes when nothing is signed in. It names a command a CI job cannot run, so the reason replaces it.
+    const string AzNotSignedIn = "Please run 'az login'";
+
+    /// <summary>The reason on the Chain row when az is not signed in.</summary>
+    public const string NotSignedInReason =
+        "az is not signed in. Locally, run az login. In CI, set up the sign-in in utils/harness/docs/azure-devops.md";
+
     // A reason on the Chain row is cut here.
     const int MaxReasonLength = 200;
 
@@ -131,13 +138,19 @@ sealed partial class AzWorkItems : IWorkItems
     /// <param name="stderr">What az wrote to standard error.</param>
     /// <param name="exitCode">az's exit code.</param>
     /// <returns>
-    /// The last <c>ERROR:</c> line that names an Azure DevOps error code (<c>TF</c> and digits) or a connection
-    /// failure, else the last <c>ERROR:</c> line, else the first line; without <c>ERROR:</c>, reduced to the message
-    /// of a JSON error or the title of an HTML page, without markup, at most 200 characters.
+    /// <see cref="NotSignedInReason"/> when az is not signed in; otherwise the last <c>ERROR:</c> line that names an
+    /// Azure DevOps error code (<c>TF</c> and digits) or a connection failure, else the last <c>ERROR:</c> line, else
+    /// the first line; without <c>ERROR:</c>, reduced to the message of a JSON error or the title of an HTML page,
+    /// without markup, at most 200 characters.
     /// </returns>
     public static string ReasonFrom(string stderr, int exitCode)
     {
         ArgumentNullException.ThrowIfNull(stderr);
+        if (stderr.Contains(AzNotSignedIn, StringComparison.Ordinal))
+        {
+            return NotSignedInReason;
+        }
+
         List<string> lines = [.. stderr.Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0)];
         if (lines.Count == 0)
         {

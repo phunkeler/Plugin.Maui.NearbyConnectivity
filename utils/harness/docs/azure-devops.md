@@ -1,69 +1,103 @@
-# Azure DevOps: read-only sign-in for CI (stage 2)
+# Azure DevOps: read-only sign-in for CI
 
 Day one does not need this. Without it, the Chain row in CI says `Boards not read`, and it works locally after
 `az login`.
 
-With it, the `harness scope` workflow signs in to Microsoft Entra with workload identity federation, gets a one-hour
-token per run, and the Chain row reads Azure Boards in CI too. No personal access token is stored anywhere, and the
-harness only reads: one `az rest` GET per work item.
+With it, the `harness scope` workflow signs in to Microsoft Entra with workload identity federation and gets a
+short-lived token for each run, so the Chain row reads Azure Boards in CI too. No client secret or personal access
+token is stored anywhere, and the harness only reads: one `az rest` GET per work item.
 
 ## Who does what
 
 | Step | Who | Where |
 |---|---|---|
-| 1. App registration with a federated credential | Someone who can create app registrations in the Entra tenant | Entra admin center |
-| 2. Add the app to the Azure DevOps organization | Organization owner or project collection administrator | Organization settings |
-| 3. Repository variables | A repository admin on GitHub | Repository settings |
-| 4. Two workflow steps | Whoever owns `.github/workflows/harness-scope.yml` | A pull request |
+| 1. Check the repository | A repository admin on GitHub | Repository settings |
+| 2. App registration with a federated credential | Someone who can create app registrations in the Entra tenant | Entra admin center |
+| 3. Add the app to the Azure DevOps organization | Organization owner or project collection administrator | Organization settings |
+| 4. Repository secrets and variables | A repository admin on GitHub | Repository settings |
 
-## 1. App registration
+## 1. Check the repository
+
+Do this first. Both answers decide what the later steps need.
+
+**The Actions policy must allow `azure/login`.** A blocked action stops the whole workflow from starting, even while
+its step is skipped, and `continue-on-error` does not help. The check then fails and the comment stops updating.
+
+```
+gh api repos/<org>/<repo>/actions/permissions
+gh api repos/<org>/<repo>/actions/permissions/selected-actions
+```
+
+If the repository allows selected actions only, add `azure/login@*` in Settings, Actions, General. Both commands need
+repository admin rights.
+
+**Read the subject GitHub sends.** Entra needs an exact match.
+
+```
+gh api repos/<org>/<repo>/actions/oidc/customization/sub
+```
+
+Add `:pull_request` to the end of `sub_claim_prefix` to get the subject. Older repositories send the name-only form,
+`repo:<org>/<repo>:pull_request`. Newer, renamed or transferred repositories can send the immutable form,
+`repo:<org>@<owner-id>/<repo>@<repo-id>:pull_request`. If you cannot read the setting, a first sign-in that fails with
+`AADSTS700213` prints the exact subject in the workflow log.
+
+## 2. App registration
 
 1. Entra admin center, App registrations, New registration. Name it `github-harness-<repo>`. No redirect URI.
 2. Note the **Application (client) ID** and the **Directory (tenant) ID**.
-3. Certificates & secrets, Federated credentials, Add credential, scenario **GitHub Actions deploying Azure resources**.
-   Organization `<github org>`, Repository `<repo>`, Entity type **Pull request**. Name `harness-pull-request`.
-   No client secret is created. Nothing expires.
+3. Certificates & secrets, Federated credentials, Add credential, scenario **Other issuer**. Issuer
+   `https://token.actions.githubusercontent.com`, the subject from step 1, audience `api://AzureADTokenExchange`, name
+   `harness-pull-request`. Do not add a client secret.
+4. Give it no Azure role. Boards does not use one.
 
-## 2. Add the app to the Azure DevOps organization
+## 3. Add the app to the Azure DevOps organization
 
-Organization settings, Users, Add users. Search the app registration by name, access level **Basic** or
-**Stakeholder**, and add it to the project's **Readers** group. Readers can read work items and their links, which is
-all the harness does. See Microsoft's guide "Use service principals and managed identities in Azure DevOps".
+Organization settings, Users, Add users. Use the **Object ID** from Entra's Enterprise applications page, not the one
+from App registrations. Choose the **Stakeholder** access level, which is free. Add the app to a purpose-specific group
+inside the project's **Readers** group, and to no other group. Stakeholder access alone can change work items, so
+Readers is what keeps it read-only. See Microsoft's guide "Use service principals and managed identities in Azure
+DevOps".
 
-## 3. Repository variables (GitHub)
+Check early that the app can read a Test Case in your project. Stakeholder access is narrower in private projects than
+in public ones. If the Chain row says `not found in Boards` for a Test Case that exists, ask the Azure DevOps
+administrator which access level the app needs.
 
-Repository settings, Secrets and variables, Actions, **Variables** (none of these is secret):
+## 4. Repository secrets and variables (GitHub)
 
-| Variable | Value |
-|---|---|
-| `AZURE_CLIENT_ID` | The app registration's Application (client) ID |
-| `AZURE_TENANT_ID` | The Directory (tenant) ID |
-| `ADO_ORG` | The organization URL, `https://dev.azure.com/<org>` |
-| `ADO_PROJECT` | The project name |
+Repository settings, Secrets and variables, Actions.
+
+| Name | Kind | Value |
+|---|---|---|
+| `AZURE_CLIENT_ID` | Secret | The app registration's Application (client) ID |
+| `AZURE_TENANT_ID` | Secret | The Directory (tenant) ID |
+| `ADO_ORG` | Variable | The organization URL, `https://dev.azure.com/<org>` |
+| `ADO_PROJECT` | Variable | The project name |
+
+The two IDs identify the app. They are not credentials, and they are secrets here only to keep them out of logs.
 
 The workflow already passes `ADO_ORG` and `ADO_PROJECT` to the harness from these variables. Set them here rather
 than only in `harness.json`: the environment wins, so a `harness.json` on any branch cannot point the robot's token
 at another organization. The harness also refuses any host but `dev.azure.com` and `*.visualstudio.com`.
 
-## 4. Workflow steps
+`harness-scope.yml` already holds the sign-in step and `id-token: write`. The step is skipped until `AZURE_CLIENT_ID`
+exists, so the workflow needs no edit. `az` is preinstalled on `ubuntu-latest`.
 
-In `harness-scope.yml`, add `id-token: write` to the job's permissions, and this step before "Change scope report":
+## Who can use the identity
 
-```yaml
-      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
-        if: vars.AZURE_CLIENT_ID != ''
-        with: { client-id: "${{ vars.AZURE_CLIENT_ID }}", tenant-id: "${{ vars.AZURE_TENANT_ID }}", allow-no-subscriptions: true }
-```
-
-`az` is preinstalled on `ubuntu-latest`. Until the variables exist the step is skipped and the Chain row says
-`Boards not read`, so the order of the steps above does not matter.
+The `pull_request` subject trusts this repository's pull request workflows, not one workflow file. Anyone who can push
+a branch can edit the workflow in a pull request and use the identity. Pull requests from forks get no OIDC token by
+default. That is acceptable for an identity that can only read one Boards project, if everyone with push access may
+read that project. An identity that can write needs its own app and a stricter subject.
 
 ## If it fails
 
-The report itself never fails; the Chain row carries the reason.
+A failed sign-in leaves the job green, and the Chain row carries the reason.
 
-- `AADSTS70021: No matching federated identity record found`: the subject in the federated credential does not match.
-  The workflow runs on pull requests, so the credential needs the **Pull request** entity.
-- `TF400813: The user ... is not authorized`: step 2 is missing.
-- `not found in Boards` for a work item that exists: the app is not in the project's Readers group, or `boards.project`
-  names another project.
+- `az is not signed in`: the sign-in step was skipped or failed. Read the step's log.
+- `AADSTS700213` or `AADSTS70021: No matching federated identity record found`: the subject does not match, or the
+  change has not reached Entra yet. Compare the subject in the log with the credential, and wait a few minutes.
+- `startup_failure` on the run: the Actions policy blocks `azure/login`. See step 1.
+- `TF400813: The user ... is not authorized`: step 3 is missing.
+- `not found in Boards` for a work item that exists: the app is not in the project's Readers group, its access level
+  cannot read that item, or `boards.project` names another project.

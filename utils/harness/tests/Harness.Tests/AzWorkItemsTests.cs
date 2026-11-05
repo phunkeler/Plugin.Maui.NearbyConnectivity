@@ -143,7 +143,7 @@ public sealed class AzWorkItemsTests
     }
 
     [Fact]
-    public async Task ReadWorkItemAsync_NotLoggedIn_ThrowsRecordUnavailableWithAzsMessage()
+    public async Task ReadWorkItemAsync_NotLoggedIn_ThrowsRecordUnavailableNamingBothWaysToSignIn()
     {
         // Arrange
         _runner.AzWorkItem(1).Returns(new ProcessResult(1, "", "ERROR: Please run 'az login' to setup account.\n"));
@@ -154,7 +154,7 @@ public sealed class AzWorkItemsTests
 
         // Assert
         Assert.Equal(
-            "Please run 'az login' to setup account.",
+            "az is not signed in. Locally, run az login. In CI, set up the sign-in in utils/harness/docs/azure-devops.md",
             Assert.IsType<RecordUnavailableException>(exception).Message);
     }
 

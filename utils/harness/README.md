@@ -106,12 +106,14 @@ longer than 60 seconds counts as Boards being unreachable.
 
 - **Locally:** `az login`, then `harness scope "#57"`. Set `ADO_ORG` and `ADO_PROJECT` in your shell if
   `harness.json` does not name them.
-- **In CI:** not yet. The workflow does not sign in to Azure, so the Chain row says `Boards not read`. Signing in
-  with workload identity federation is stage 2: see [docs/azure-devops.md](docs/azure-devops.md).
+- **In CI:** the workflow signs in with workload identity federation once the `AZURE_CLIENT_ID` secret is set: see
+  [docs/azure-devops.md](docs/azure-devops.md). Until then the sign-in step is skipped, and the Chain row says
+  `Boards not read`.
 
 A work item that does not exist, or that the caller may not read, is listed as `not found in Boards`. A Boards that
 cannot be reached (no `az`, not logged in, no organization and project, a timeout) gives `Boards not read:` and the
-line of az's output that says why; the rest of the report is unchanged.
+reason, which says how to sign in or quotes the line of az's output that says why; the rest of the report is
+unchanged.
 
 ## Command line
 

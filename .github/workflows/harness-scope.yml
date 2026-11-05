@@ -3,7 +3,8 @@ name: harness scope
 # built or run: the harness is checked out from the base commit into .harness-base/, copied out of the workspace so
 # no global.json or nuget.config from the pull request applies, built there with its own SDK pin, and then run over
 # the pull request's merge checkout, where it only reads git and the GitHub API. GITHUB_TOKEN is enough for GitHub.
-# Azure Boards is read with a federated sign-in once AZURE_CLIENT_ID is set; until then the Chain row says
+# Azure Boards is read with a federated sign-in once AZURE_CLIENT_ID is set (utils/harness/docs/azure-devops.md); until
+# then the Chain row says
 # "Boards not read".
 permissions: {}
 on:
@@ -46,7 +47,8 @@ jobs:
         working-directory: ${{ runner.temp }}/harness
         run: dotnet build src/Harness.Cli -c Release --nologo
       # No client secret: Entra trusts this repository's pull requests. A failed sign-in stays a reason on the Chain
-      # row, so the check is never red. Skipped until AZURE_CLIENT_ID is set.
+      # row. Skipped until AZURE_CLIENT_ID is set, but the repository's Actions policy must still allow azure/login:
+      # a blocked action stops the whole workflow from starting, and continue-on-error does not help.
       - name: Sign in to Azure Boards
         if: steps.base.outputs.present == 'true' && env.AZURE_CLIENT_ID != ''
         continue-on-error: true
