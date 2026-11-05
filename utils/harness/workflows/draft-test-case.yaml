@@ -1,4 +1,4 @@
-# draft-test-case: the first workflow block. Schema and rationale: docs/harness/2026-11-04-qa-test-case-workflow-design.md (sections 2 to 5).
+# draft-test-case: the first workflow block.
 workflow: draft-test-case
 version: 1
 description: An agent drafts a Test Case from a story's acceptance criteria. QA approves it by moving it to Ready.
@@ -11,7 +11,6 @@ trigger:
     - tagSet: { record: subject, tag: needs-qa }
     - fieldPresent: { record: subject, field: Microsoft.VSTS.Common.AcceptanceCriteria }
     - notLinked: { from: subject, type: Tested By, toType: Test Case }
-    - noOpenTask: {}
 
 reads:
   - { name: story, from: workItems, record: subject, fields: [System.Id, System.Title, System.Description, System.AreaPath, System.IterationPath], transform: text }
@@ -40,16 +39,14 @@ task:
        Cover every criterion. Do not use shared steps.
     3. Tag it AI-Drafted and link the story to it with Tested By. Leave it in Design; never set Ready or Closed.
     4. Change nothing else on the story or the Test Case.
-    5. Write {{task.result.path}} with the schema below, then hand over:
-       harness submit draft-test-case {{task.subject.id}} --result {{task.result.path}}
-       Without the harness, post the result comment on the story yourself, in the format below.
-    6. If the criteria are missing, contradictory or too vague to test, create nothing: write status
-       cannot-complete with the reason and your questions, and hand over the same way.
+    5. Write {{task.result.path}} with the schema below, then post one comment on the story for QA.
+    6. If the criteria are missing, contradictory or too vague to test, create nothing: post one
+       comment with the reason and your questions.
     The checks below run after you hand over. You cannot change them.
 
 checks:
   - { id: tested-by-link, kind: mechanical, rule: { linked: { from: subject, type: Tested By, to: testCase } }, says: "The story links the Test Case with Tested By." }
-  - { id: ai-generated-tag, kind: mechanical, rule: { tagSet: { record: testCase, tag: AI-Drafted } }, says: "The Test Case carries the AI-Drafted tag." }
+  - { id: ai-drafted-tag, kind: mechanical, rule: { tagSet: { record: testCase, tag: AI-Drafted } }, says: "The Test Case carries the AI-Drafted tag." }
   - { id: left-in-design, kind: mechanical, rule: { stateIs: { record: testCase, state: Design, at: handover } }, says: "The agent left the Test Case in Design." }
   - { id: drafted-by-agent, kind: mechanical, rule: { createdByPerformer: { record: testCase } }, says: "The agent that took the task created the Test Case." }
   - { id: same-area, kind: mechanical, rule: { fieldEquals: { record: testCase, field: System.AreaPath, sameAs: { record: subject, field: System.AreaPath } } }, says: "The Test Case is in the story's area path." }

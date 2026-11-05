@@ -39,6 +39,10 @@ and its steps are bash; the harness itself runs nothing but `git`, `gh` and `az`
 a Windows runner works with `shell: bash` on the steps. The workflow declares its own permissions
 (`pull-requests: write` for the comment), so the repository's default `GITHUB_TOKEN` setting can stay read-only.
 
+The workflow finds its comment by the marker on the last line. A workflow that runs `gh pr comment --edit-last`
+under the same `github-actions[bot]` overwrites whatever comment that bot wrote last, this one included. Give that
+workflow its own marker.
+
 ## harness.json
 
 The harness reads `harness.json` from the pull request's base branch, never from the pull request, so a change
@@ -150,7 +154,7 @@ repository is never run.
 | `src/Harness` | The library: `harness.json`, git and GitHub reads, test impact, the Boards provider and the Chain row |
 | `src/Harness.Cli` | The `harness` command line |
 | `tests/Harness.Tests` | Unit tests. `dotnet test` from this folder |
-| `docs/` | Azure Boards sign-in for CI (stage 2) |
+| `docs/` | Azure Boards sign-in for CI |
 
 The folder has its own `global.json`, `Directory.Build.props` and `Directory.Packages.props`, so it builds the same
 way inside the monorepo as on its own, and it does not change how the app builds.
