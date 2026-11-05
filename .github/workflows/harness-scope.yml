@@ -2,8 +2,8 @@ name: harness scope
 # Every pull request gets one sticky "Change scope" comment, edited in place on each push. No pull request code is
 # built or run: the harness is checked out from the base commit into .harness-base/, copied out of the workspace so
 # no global.json or nuget.config from the pull request applies, built there with its own SDK pin, and then run over
-# the pull request's merge checkout, where it only reads git and the GitHub API. GITHUB_TOKEN is enough; no secret.
-# Azure Boards is not read here until stage 2 (utils/harness/docs/azure-devops.md), so the Chain row says
+# the pull request's merge checkout, where it only reads git and the GitHub API. GITHUB_TOKEN is enough for GitHub.
+# Azure Boards is read with a federated sign-in once AZURE_CLIENT_ID is set; until then the Chain row says
 # "Boards not read".
 permissions: {}
 on:
@@ -19,8 +19,10 @@ jobs:
     permissions:
       contents: read
       pull-requests: write # the sticky comment
+      id-token: write # lets this job ask GitHub for its OIDC token, exchanged for a read-only Boards sign-in
     env:
       PR: ${{ github.event.pull_request.number }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }} # an `if:` cannot read secrets, only env
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -43,6 +45,16 @@ jobs:
         if: steps.base.outputs.present == 'true'
         working-directory: ${{ runner.temp }}/harness
         run: dotnet build src/Harness.Cli -c Release --nologo
+      # No client secret: Entra trusts this repository's pull requests. A failed sign-in stays a reason on the Chain
+      # row, so the check is never red. Skipped until AZURE_CLIENT_ID is set.
+      - name: Sign in to Azure Boards
+        if: steps.base.outputs.present == 'true' && env.AZURE_CLIENT_ID != ''
+        continue-on-error: true
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
       # Two runs over the same commit: one for the comment, one for the JSON the measures read. Both only read.
       - name: Change scope report
         if: steps.base.outputs.present == 'true'
