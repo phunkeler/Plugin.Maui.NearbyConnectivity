@@ -1,7 +1,7 @@
 # Azure DevOps: read-only sign-in for CI
 
-Day one does not need this. Without it, the Chain row in CI says `Boards not read`, and it works locally after
-`az login`.
+This is optional, and it needs admins. The workflow does not sign in by default. Without a sign-in, the Chain row in
+CI says `Boards not read`, every other row works, and the Chain row works locally after `az login`.
 
 With it, the `harness scope` workflow signs in to Microsoft Entra with workload identity federation and gets a
 short-lived token for each run, so the Chain row reads Azure Boards in CI too. No client secret or personal access
@@ -15,13 +15,14 @@ token is stored anywhere, and the harness only reads: one `az rest` GET per work
 | 2. App registration with a federated credential | Someone who can create app registrations in the Entra tenant | Entra admin center |
 | 3. Add the app to the Azure DevOps organization | Organization owner or project collection administrator | Organization settings |
 | 4. Repository secrets and variables | A repository admin on GitHub | Repository settings |
+| 5. Add the sign-in step to the workflow | A developer | `harness-scope.yml` |
 
 ## 1. Check the repository
 
 Do this first. Both answers decide what the later steps need.
 
-**The Actions policy must allow `azure/login`.** A blocked action stops the whole workflow from starting, even while
-its step is skipped, and `continue-on-error` does not help. The check then fails and the comment stops updating.
+**The Actions policy must allow `azure/login`.** A blocked action stops the whole workflow from starting, and
+`continue-on-error` does not help. The comment then stops updating, so do this before step 5.
 
 ```
 gh api repos/<org>/<repo>/actions/permissions
@@ -80,8 +81,23 @@ The workflow already passes `ADO_ORG` and `ADO_PROJECT` to the harness from thes
 than only in `harness.json`: the environment wins, so a `harness.json` on any branch cannot point the robot's token
 at another organization. The harness also refuses any host but `dev.azure.com` and `*.visualstudio.com`.
 
-`harness-scope.yml` already holds the sign-in step and `id-token: write`. The step is skipped until `AZURE_CLIENT_ID`
-exists, so the workflow needs no edit. `az` is preinstalled on `ubuntu-latest`.
+`az` is preinstalled on `ubuntu-latest`.
+
+## 5. Add the sign-in step to the workflow
+
+In `.github/workflows/harness-scope.yml`, add `id-token: write` to the job's `permissions`, and add this step after
+`Build harness`. A failed sign-in stays a reason on the Chain row.
+
+```yaml
+      - name: Sign in to Azure Boards
+        if: steps.base.outputs.present == 'true'
+        continue-on-error: true
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+```
 
 ## Who can use the identity
 
@@ -94,7 +110,7 @@ read that project. An identity that can write needs its own app and a stricter s
 
 A failed sign-in leaves the job green, and the Chain row carries the reason.
 
-- `az is not signed in`: the sign-in step was skipped or failed. Read the step's log.
+- `no Azure sign-in here`: the sign-in step is missing or failed. Read the step's log.
 - `AADSTS700213` or `AADSTS70021: No matching federated identity record found`: the subject does not match, or the
   change has not reached Entra yet. Compare the subject in the log with the credential, and wait a few minutes.
 - `startup_failure` on the run: the Actions policy blocks `azure/login`. See step 1.
