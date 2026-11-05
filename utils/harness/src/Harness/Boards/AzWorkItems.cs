@@ -28,7 +28,7 @@ sealed partial class AzWorkItems : IWorkItems
 
     /// <summary>The reason on the Chain row when az is not signed in.</summary>
     public const string NotSignedInReason =
-        "az is not signed in. Locally, run az login. In CI, set up the sign-in in utils/harness/docs/azure-devops.md";
+        "no Azure sign-in here, which is expected in CI until one is set up. Locally, run az login";
 
     // A reason on the Chain row is cut here.
     const int MaxReasonLength = 200;

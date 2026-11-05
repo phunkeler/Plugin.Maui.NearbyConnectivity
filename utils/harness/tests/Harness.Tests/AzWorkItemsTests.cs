@@ -154,7 +154,7 @@ public sealed class AzWorkItemsTests
 
         // Assert
         Assert.Equal(
-            "az is not signed in. Locally, run az login. In CI, set up the sign-in in utils/harness/docs/azure-devops.md",
+            "no Azure sign-in here, which is expected in CI until one is set up. Locally, run az login",
             Assert.IsType<RecordUnavailableException>(exception).Message);
     }
 
