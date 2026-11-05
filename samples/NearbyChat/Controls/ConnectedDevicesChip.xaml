@@ -25,7 +25,7 @@
                 </Image.Source>
             </Image>
             <Label
-                Text="{Binding Count, Source={x:Reference this}}"
+                Text="{Binding Count, Source={x:Reference this}, StringFormat='{0} connected'}"
                 TextColor="White"
                 FontSize="18"
                 FontAttributes="Bold"
