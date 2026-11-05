@@ -195,7 +195,18 @@ jobs:
 
       - name: Add comment to PR
         if: steps.download.outcome == 'success'
-        run: gh pr comment $PR_NUMBER --edit-last --create-if-none --body-file coverage-summary/SummaryGithub.md
+        # Finds its own comment by marker: --edit-last would overwrite the newest comment by any workflow of this bot.
+        run: |
+          { cat coverage-summary/SummaryGithub.md; printf '\n<!-- coverage-summary -->\n'; } > coverage-comment.md
+          id=$(gh api "repos/$GH_REPO/issues/$PR_NUMBER/comments" --paginate \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | test("<!-- coverage-summary -->\\s*$"))) | .id' \
+            | head -n 1)
+          if [ -n "$id" ]; then
+            jq -n --rawfile body coverage-comment.md '{body: $body}' \
+              | gh api -X PATCH "repos/$GH_REPO/issues/comments/$id" --input - > /dev/null
+          else
+            gh pr comment "$PR_NUMBER" --body-file coverage-comment.md
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
