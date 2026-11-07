@@ -39,19 +39,19 @@
     <PackageVersion Include="DeviceRunners.Testing.Targets" Version="0.1.0-preview.12" />
     <PackageVersion Include="DeviceRunners.VisualRunners.Maui" Version="0.1.0-preview.12" />
     <PackageVersion Include="DeviceRunners.VisualRunners.Xunit3" Version="0.1.0-preview.12" />
-    <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
-    <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.2" />
+    <PackageVersion Include="xunit.v3.assert" Version="4.0.2" />
     <!-- Pinned to what xunit.v3 3.2.2 resolves, so this suite and the UI suite (which gets the
          analyzers transitively via the xunit.v3 metapackage) agree on what is a warning. -->
-    <PackageVersion Include="xunit.analyzers" Version="1.27.0" />
+    <PackageVersion Include="xunit.analyzers" Version="2.2.0" />
   </ItemGroup>
 
   <!-- UI Tests -->
   <ItemGroup>
     <PackageVersion Include="Appium.WebDriver" Version="9.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
-    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
   </ItemGroup>
 
 </Project>
