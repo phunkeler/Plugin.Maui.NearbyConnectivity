@@ -34,6 +34,8 @@
     <PackageReference Include="DeviceRunners.VisualRunners.Xunit3" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
     <PackageReference Include="Microsoft.Maui.Controls" />
+    <PackageReference Include="xunit.v3.assert" />
+    <PackageReference Include="xunit.v3.extensibility.core" />
     <ProjectReference Include="../Plugin.Maui.NearbyConnectivity.DeviceTests/Plugin.Maui.NearbyConnectivity.DeviceTests.csproj" />
   </ItemGroup>
 

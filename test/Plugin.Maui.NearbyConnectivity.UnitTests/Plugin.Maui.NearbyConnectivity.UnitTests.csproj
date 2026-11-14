@@ -6,6 +6,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="NSubstitute" />
+    <PackageReference Include="xunit.analyzers" />
     <PackageReference Include="xunit.v3" />
     <ProjectReference Include="../../src/Plugin.Maui.NearbyConnectivity/Plugin.Maui.NearbyConnectivity.csproj" />
   </ItemGroup>
