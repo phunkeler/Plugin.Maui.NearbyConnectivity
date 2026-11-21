@@ -84,7 +84,7 @@ jobs:
           HARNESS_REF: "${{ vars.HARNESS_REF }}"
           HARNESS_REPO: "${{ vars.HARNESS_REPO }}"
         run: gh repo clone "$GITHUB_REPOSITORY_OWNER/$HARNESS_REPO" /tmp/maui-harness -- --depth 1 --branch "$HARNESS_REF"
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with: { global-json-file: /tmp/maui-harness/global.json }
       - name: Build and install harness
         working-directory: /tmp/maui-harness
@@ -95,7 +95,7 @@ jobs:
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { ref: "agent/ab-${{ needs.pick.outputs.workitem }}", path: head, fetch-depth: 0, persist-credentials: false }
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         if: hashFiles('head/global.json') != ''
         with: { global-json-file: head/global.json }
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -180,7 +180,7 @@ jobs:
           HARNESS_REF: "${{ vars.HARNESS_REF }}"
           HARNESS_REPO: "${{ vars.HARNESS_REPO }}"
         run: gh repo clone "$GITHUB_REPOSITORY_OWNER/$HARNESS_REPO" /tmp/maui-harness -- --depth 1 --branch "$HARNESS_REF"
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with: { global-json-file: /tmp/maui-harness/global.json }
       - name: Build and install harness
         working-directory: /tmp/maui-harness
@@ -191,7 +191,7 @@ jobs:
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { ref: "${{ needs.push.outputs.sha }}", path: head, fetch-depth: 0, persist-credentials: false }
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         if: hashFiles('head/global.json') != ''
         with: { global-json-file: head/global.json }
       - name: Verify
@@ -226,7 +226,7 @@ jobs:
           HARNESS_REF: "${{ vars.HARNESS_REF }}"
           HARNESS_REPO: "${{ vars.HARNESS_REPO }}"
         run: gh repo clone "$GITHUB_REPOSITORY_OWNER/$HARNESS_REPO" /tmp/maui-harness -- --depth 1 --branch "$HARNESS_REF"
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with: { global-json-file: /tmp/maui-harness/global.json }
       - name: Build and install harness
         working-directory: /tmp/maui-harness
